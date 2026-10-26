@@ -724,14 +724,15 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
 
   // ---- live recording from the microphone (website only) ----
   let rec = null;
+  function closeCtx(c) { try { const p = c && c.state !== "closed" ? c.close() : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ } }
   function startRec(target) {
     if (rec) return;
     stopVoice();
     const AC = window.AudioContext || window.webkitAudioContext;
     let ctx;
     try { ctx = new AC(); } catch (e) { toast("تعذر تشغيل المايكروفون.", true); return; }
-    // the context is created inside the tap, so iPhone lets it run
-    const r = rec = { ctx, stream: null, node: null, src: null, chunks: [], len: 0, started: Date.now(), timer: null, max: null, done: false };
+    // the context is created inside the tap, so phones let it run
+    const r = rec = { ctx, stream: null, node: null, src: null, chunks: [], len: 0, started: Date.now(), timer: null, done: false };
     S.voiceFor = target;
     S.voice = { state: "rec", for: target, waiting: true };
     S.simpleKey = ""; renderAll();
@@ -740,7 +741,14 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
       if (r.done) { stream.getTracks().forEach(t => t.stop()); return; }
       r.stream = stream;
       if (resumed) await resumed;
-      if (ctx.state === "suspended") { try { await ctx.resume(); } catch (e) { /* ignore */ } }
+      if (ctx.state !== "running") { try { await ctx.resume(); } catch (e) { /* ignore */ } }
+      if (ctx.state !== "running") {
+        // some phones pause the first audio context when the microphone opens: start a fresh one
+        closeCtx(ctx);
+        r.ctx = ctx = new AC();
+        try { await ctx.resume(); } catch (e) { /* ignore */ }
+      }
+      if (r.done) { stream.getTracks().forEach(t => t.stop()); return; }
       r.src = ctx.createMediaStreamSource(stream);
       r.node = ctx.createScriptProcessor(4096, 1, 1);
       r.node.onaudioprocess = (ev) => {
@@ -754,9 +762,9 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
       S.voice = { state: "rec", for: target };
       S.simpleKey = ""; renderAll();
       r.timer = setInterval(updateRecTimer, 250);
-    }, (err) => {
+    }).catch((err) => {
       if (r.done) return;
-      cleanupRec(r); rec = null;
+      cleanupRec(r); if (rec === r) rec = null;
       S.voice = null; S.simpleKey = ""; renderAll();
       toast(err && (err.name === "NotAllowedError" || err.name === "SecurityError") ? "اسمح للمتصفح باستخدام المايكروفون، ثم حاول مرة ثانية." : "تعذر تشغيل المايكروفون في هذا الجهاز.", true);
     });
@@ -765,7 +773,7 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
     r.done = true; clearInterval(r.timer);
     try { if (r.src) r.src.disconnect(); if (r.node) { r.node.onaudioprocess = null; r.node.disconnect(); } } catch (e) { /* ignore */ }
     if (r.stream) r.stream.getTracks().forEach(t => t.stop());
-    try { r.ctx.close(); } catch (e) { /* ignore */ }
+    closeCtx(r.ctx);
   }
   function stopRec(cancel) {
     const r = rec;
@@ -777,13 +785,16 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
     const mono = new Float32Array(r.len);
     let off = 0; for (const c of r.chunks) { mono.set(c, off); off += c.length; }
     try {
+      if (!r.len) throw new Error("nomic");
       if (r.len < sr * 0.4) throw new Error("short");
       S.voice = encodeVoice(mono, sr, target);
       if (target === "simple") { S.simple.step = "confirm"; if (!S.simple.kind) S.simple.kind = "voice"; }
       toast(r.len >= VOICE_MAX * sr ? "انتهت مدة التسجيل (٤٠ ثانية) وحُفظت الرسالة." : "تم تجهيز الرسالة الصوتية.");
     } catch (e) {
       S.voice = null;
-      toast(e && e.message === "short" ? "التسجيل قصير جدًا. اضغط وتكلم ثم اضغط إيقاف." : "التسجيل بدون صوت. جرّب مرة ثانية.", true);
+      const why = e && e.message;
+      toast(why === "nomic" ? "لم يصل صوت من المايكروفون. تأكد من السماح له وحاول مرة ثانية."
+        : why === "short" ? "التسجيل قصير جدًا. تكلّم ثم اضغط «إيقاف التسجيل»." : "التسجيل بدون صوت. جرّب مرة ثانية.", true);
     }
     S.simpleKey = ""; renderAll();
   }
