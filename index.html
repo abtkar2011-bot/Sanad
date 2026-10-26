@@ -278,6 +278,7 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
 .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--green); flex: none; }
 .locline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 14px; background: var(--surface-2); border-radius: var(--r-s); padding: 9px 12px; }
 .locline .ico { color: var(--green); }
+.locline .btn.gps .ico { color: inherit; }
 .form-msg { font-size: 13.5px; padding: 9px 12px; border-radius: var(--r-s); background: var(--green-soft); }
 .form-msg.err { background: var(--surface-2); color: var(--danger); }
 
@@ -587,6 +588,7 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
   // Public website build (GitHub Pages): live microphone + Supabase. Inside Claude both are off.
   const WEB = window.SANAD_PLATFORM === "web";
   const CAN_REC = WEB && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && !!(window.AudioContext || window.webkitAudioContext);
+  const CAN_GEO = WEB && !!navigator.geolocation;
 
   // ================= helpers =================
   const $ = (s, el = document) => el.querySelector(s);
@@ -638,7 +640,7 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
       const m = t.match(re);
       if (m) {
         const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
-        if (lat >= 16 && lat <= 27 && lng >= 51.5 && lng <= 60.5) return { lat, lng };
+        if (lat >= 16 && lat <= 27 && lng >= 51.5 && lng <= 60.5 && wilayatAt(lat, lng)) return { lat, lng };
         return { error: "الموقع خارج سلطنة عُمان. تأكد من الرابط." };
       }
     }
@@ -915,7 +917,7 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
     filterSec: "all", filterKind: "all", tab: "list", selectedId: null, justCreated: null,
     reports: [], reportOpen: false, confirmDelete: false,
     msgs: [], msgFor: null, msgUnsub: null,
-    pick: null, regLoc: null, reqLoc: null, editing: false,
+    pick: null, regLoc: null, reqLoc: null, editing: false, locating: null,
     demo: false, demoReqs: [], demoMsgs: {}, demoReplied: {}, demoVoice: {}, voiceCache: {},
     voice: null, voiceFor: "new",
     simple: { step: "home", kind: null, text: "", confirmCancel: false, skipRate: {} }, simpleKey: "",
@@ -1336,11 +1338,38 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
       ${rating}${chat}${report}${ownerDel}`;
     const log = $("#chat-log"); if (log) log.scrollTop = log.scrollHeight;
   }
+  function gpsBtn(purpose, primary) {
+    if (!CAN_GEO) return "";
+    const busy = S.locating === purpose;
+    return `<button type="button" class="${primary ? "btn btn-primary btn-sm" : "btn-link"} gps" data-action="gps" data-for="${purpose}" ${busy ? "disabled" : ""}>${icon("locate")}${busy ? "جارِ تحديد موقعك..." : (purpose === "request" ? "موقعي الحالي" : "حدّد موقعي تلقائيًا")}</button>`;
+  }
   function locLine(loc, emptyText, purpose, isDefault) {
-    const btn = `<button type="button" class="btn-link" data-action="pick" data-for="${purpose}">${loc ? "غيّر المكان" : "حدّد على الخريطة"}</button>`;
-    if (!loc) return `${icon("pin")}<span class="muted">${esc(emptyText)}</span>${btn}`;
+    const btn = `<button type="button" class="btn-link" data-action="pick" data-for="${purpose}">${loc ? "غيّر المكان" : (CAN_GEO ? "أو حدّده على الخريطة" : "حدّد على الخريطة")}</button>`;
+    if (!loc) return CAN_GEO ? `${gpsBtn(purpose, true)}${btn}` : `${icon("pin")}<span class="muted">${esc(emptyText)}</span>${btn}`;
     const w = wilayatAt(loc.lat, loc.lng);
-    return `${icon("pin")}<span>${esc(isDefault ? "موقعك المسجّل" : (w ? "مكان محدد في " + wilLabel(w) : "مكان محدد على الخريطة"))}</span>${btn}${!isDefault && purpose === "request" ? `<button type="button" class="btn-link quiet" data-action="loc-reset">استخدم موقعي</button>` : ""}`;
+    return `${icon("pin")}<span>${esc(isDefault ? "موقعك المسجّل" : (w ? "مكان محدد في " + wilLabel(w) : "مكان محدد على الخريطة"))}</span>${btn}${gpsBtn(purpose, false)}${!isDefault && purpose === "request" ? `<button type="button" class="btn-link quiet" data-action="loc-reset">موقعي المسجّل</button>` : ""}`;
+  }
+  // phone/computer location (GPS); the person still sees it on the map and can adjust it
+  function locateMe(purpose) {
+    if (!navigator.geolocation) { toast("جهازك لا يدعم تحديد الموقع. حدّده على الخريطة.", true); return; }
+    if (S.locating) return;
+    S.locating = purpose; renderAll();
+    navigator.geolocation.getCurrentPosition((pos) => {
+      S.locating = null;
+      const lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy || 0;
+      if (!(lat >= 16 && lat <= 27 && lng >= 51.5 && lng <= 60.5) || !wilayatAt(lat, lng)) { renderAll(); toast("موقعك الحالي خارج سلطنة عُمان. حدّد المكان على الخريطة.", true); return; }
+      if (purpose === "register") setRegLoc({ lat, lng });
+      else if (purpose === "request") setReqLoc({ lat, lng });
+      renderAll();
+      map.focus(lat, lng, purpose === "view" ? 6 : 1.5);
+      if (window.innerWidth <= 960 && purpose === "view") { const c = $(".mapcard"); if (c) c.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      toast(purpose === "view" ? "هذا موقعك الحالي على الخريطة."
+        : acc > 150 ? "تم تحديد موقعك تقريبًا (±" + nf.format(Math.round(acc / 10) * 10) + " م). تأكد منه على الخريطة."
+        : "تم تحديد موقعك. تقدر تشوفه على الخريطة.");
+    }, (err) => {
+      S.locating = null; renderAll();
+      toast(err && err.code === 1 ? "اسمح للمتصفح بمعرفة موقعك من الإعدادات، أو حدّده على الخريطة." : "تعذر تحديد موقعك الآن. حاول مرة ثانية أو حدّده على الخريطة.", true);
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
   }
   function renderNewForm() {
     const gate = $("#new-gate"), form = $("#f-new");
@@ -1836,7 +1865,8 @@ fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: colu
       case "zoom-in": { const t = map.target || map; map.go(t.cx, t.cy, t.upp / 1.8); break; }
       case "zoom-out": { const t = map.target || map; map.go(t.cx, t.cy, t.upp * 1.8); break; }
       case "map-mode": map.setSat(!map.satOn, true); break;
-      case "zoom-me": if (S.me) map.focus(S.me.lat, S.me.lng, 28); else toast("سجّل وحدّد موقعك أولًا."); break;
+      case "zoom-me": if (S.me) map.focus(S.me.lat, S.me.lng, 28); else if (CAN_GEO) locateMe("view"); else toast("سجّل وحدّد موقعك أولًا."); break;
+      case "gps": locateMe(el.dataset.for); break;
       case "pick": startPick(el.dataset.for); break;
       case "pick-ok": finishPick(true); break;
       case "pick-cancel": finishPick(false); break;
