@@ -255,6 +255,7 @@ form { display: flex; flex-direction: column; gap: 14px; }
 .field textarea { min-height: 92px; resize: vertical; }
 .field input:focus, .field select:focus, .field textarea:focus, .paste:focus { border-color: var(--green); outline: none; box-shadow: 0 0 0 3px var(--green-soft); }
 .hint { margin: 0; font-size: 12.5px; color: var(--muted); }
+.s-card .hint { font-size: 15px; }
 .phone { display: flex; direction: ltr; }
 .phone .cc { display: grid; place-items: center; padding: 0 11px; border: 1px solid var(--line-2); border-right: 0; border-radius: var(--r-s) 0 0 var(--r-s); background: var(--surface-2); color: var(--muted); font-weight: 600; }
 .phone input { flex: 1; min-width: 0; width: 100%; padding: 9px 12px; border: 1px solid var(--line-2); border-radius: 0 var(--r-s) var(--r-s) 0; background: var(--surface); direction: ltr; text-align: left; letter-spacing: .5px; }
@@ -500,7 +501,8 @@ body::before { background: var(--green); }
         <label class="check" id="n-female-wrap" hidden><input type="checkbox" id="n-female"><span>أفضّل أن تكون المساعِدة امرأة</span></label>
         <div class="field">
           <label for="n-details">التفاصيل</label>
-          <textarea id="n-details" maxlength="400" placeholder="اشرح المساعدة دون ذكر رقم هاتفك، أو سجّل رسالة صوتية."></textarea>
+          <textarea id="n-details" maxlength="400" placeholder="اشرح المساعدة التي تحتاجها أو تقدمها، أو سجّل رسالة صوتية."></textarea>
+          <p class="hint">يُفضّل ذكر رقم الهاتف للتواصل.</p>
           <span class="count" id="n-count">٠ / ٤٠٠</span>
         </div>
         <div class="field">
@@ -1558,7 +1560,7 @@ body::before { background: var(--green); }
       html += `<div class="s-card"><div class="s-title">${icon(k.icon)}${esc(k.ar)}</div>
         <p class="s-text">سيصل طلبك لمن حولك في نطاق ١٠ كم، ويتواصل معك هنا من يقبله.</p>
         <div class="voice">${voiceBox("simple")}</div>
-        <div class="field"><label for="s-text">${S.simple.kind === "voice" ? "أو اكتب ما تحتاجه" : "تفاصيل (اختياري)"}</label><textarea id="s-text" maxlength="300" placeholder="تقدر تضغط على الميكروفون في لوحة المفاتيح وتتكلم.">${esc(S.simple.text || "")}</textarea></div>
+        <div class="field"><label for="s-text">${S.simple.kind === "voice" ? "أو اكتب ما تحتاجه" : "تفاصيل (اختياري)"}</label><textarea id="s-text" maxlength="300" placeholder="تقدر تضغط على الميكروفون في لوحة المفاتيح وتتكلم.">${esc(S.simple.text || "")}</textarea><p class="hint">يُفضّل ذكر رقم الهاتف للتواصل.</p></div>
         <div class="s-actions"><button type="button" class="btn btn-primary" data-action="s-send" id="s-send" ${sv === "busy" || sv === "rec" ? "disabled" : ""}>أرسل الطلب</button><button type="button" class="btn btn-ghost" data-action="s-back">رجوع</button></div></div>`;
     } else if (active) {
       const k = active.simple_kind && SIMPLE_KINDS[active.simple_kind] ? SIMPLE_KINDS[active.simple_kind] : { ar: (SECTIONS[active.section] || SECTIONS.elderly).ar, icon: (SECTIONS[active.section] || SECTIONS.elderly).icon };
