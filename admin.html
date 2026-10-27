@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0e5a3b">
+<title>سند · لوحة المطورين</title>
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@800&display=swap">
+<style>
+/* Developer page for Sanad: reports and ratings. White pages, Diwani green, always light. */
+:root {
+  color-scheme: light;
+  --green: #0e5a3b; --green-ink: #0b4a30; --green-soft: #eaf3ed;
+  --ink: #13261d; --muted: #5d6e66; --line: #e3ebe6; --line-2: #cddad2; --bg: #ffffff; --soft: #f3f7f4;
+  --danger: #b42318; --danger-soft: #fdeeec; --star: #d99a00;
+  --body: "IBM Plex Sans Arabic", Tahoma, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { direction: rtl; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6; -webkit-text-size-adjust: 100%; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.bar { position: sticky; top: 0; z-index: 5; background: var(--green); color: #fff; box-shadow: 0 2px 10px rgba(14, 90, 59, .18); }
+.bar .in { max-width: 980px; margin: 0 auto; padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 12px; }
+.logo { font-family: "Noto Kufi Arabic", var(--body); font-weight: 800; font-size: 24px; }
+.bar .sub { color: rgba(255, 255, 255, .82); font-size: 14px; }
+.bar .sp { flex: 1; }
+.bar button { background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .3); color: #fff; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 14px; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 18px 16px 40px; }
+.login { max-width: 420px; margin: 40px auto; border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 6px 18px rgba(19, 38, 29, .06); }
+.login h1 { margin: 0 0 4px; font-size: 22px; }
+.login p.lead { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 14px; margin-bottom: 14px; }
+input { width: 100%; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 12px; background: #fff; font-weight: 400; }
+input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.primary { width: 100%; background: var(--green); color: #fff; border: 0; border-radius: 12px; padding: 11px; font-weight: 700; font-size: 15px; }
+.err { margin: 0 0 12px; color: var(--danger); background: var(--danger-soft); border-radius: 10px; padding: 9px 12px; font-size: 14px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.stat { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.stat b { display: block; font-size: 24px; color: var(--green); }
+.stat span { color: var(--muted); font-size: 13px; }
+.tabs { display: flex; gap: 6px; background: var(--soft); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
+.tabs button { flex: 1; border: 0; background: none; border-radius: 9px; padding: 8px; font-weight: 700; color: var(--muted); }
+.tabs button[aria-pressed="true"] { background: #fff; color: var(--green); box-shadow: 0 1px 3px rgba(19, 38, 29, .1); }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.item { border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 2px rgba(19, 38, 29, .04); }
+.item .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.item .reason { color: var(--danger); }
+.muted { color: var(--muted); font-size: 13px; }
+.req { margin: 0; color: var(--ink); font-size: 14px; }
+.who { font-size: 14px; }
+.who > span:first-child { color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.row button { border: 1px solid var(--line-2); background: #fff; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 14px; }
+.row button.danger { color: var(--danger); border-color: #f0c5c0; }
+.row button.danger.sure { background: var(--danger); color: #fff; border-color: var(--danger); }
+.rate { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; flex-wrap: wrap; }
+.stars { color: var(--star); letter-spacing: 1px; direction: ltr; white-space: nowrap; }
+.low { background: var(--danger-soft); border-radius: 8px; padding: 2px 8px; }
+.empty { border: 1.5px dashed var(--line-2); border-radius: 14px; padding: 22px; text-align: center; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: right; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; padding: 9px 16px; font-weight: 600; font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="bar"><div class="in">
+  <span class="logo">سند</span><span class="sub">لوحة المطورين</span><span class="sp"></span>
+  <button type="button" id="refresh" hidden>تحديث</button>
+  <button type="button" id="logout" hidden>خروج</button>
+</div></header>
+
+<main class="wrap">
+  <section class="login" id="login">
+    <h1>دخول المطورين</h1>
+    <p class="lead">مراجعة البلاغات والتقييمات في سند.</p>
+    <form id="f-login" novalidate>
+      <label>اسم المستخدم<input id="l-user" autocomplete="username" autocapitalize="none" spellcheck="false" dir="ltr"></label>
+      <label>كلمة المرور<input id="l-pass" type="password" autocomplete="current-password" dir="ltr"></label>
+      <p class="err" id="l-msg" hidden></p>
+      <button class="primary" type="submit" id="l-btn">دخول</button>
+    </form>
+  </section>
+
+  <section id="app" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="tabs" role="group" aria-label="الأقسام">
+      <button type="button" data-tab="reports" aria-pressed="true">البلاغات</button>
+      <button type="button" data-tab="ratings" aria-pressed="false">التقييمات</button>
+      <button type="button" data-tab="users" aria-pressed="false">المستخدمون</button>
+    </div>
+    <div id="view"></div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  "use strict";
+  const cfg = window.SANAD_CONFIG || {};
+  const BASE = String(cfg.url || "").trim().replace(/\/+$/, ""), KEY = String(cfg.key || "").trim();
+  const SECT = { road: "على الطريق", social: "الحياة الاجتماعية", occasion: "الأفراح والأتراح", elderly: "كبار السن وذوي الاحتياجات" };
+  const STATUS = { open: "مفتوح", accepted: "تم القبول", done: "تمت المساعدة" };
+  const $ = (s) => document.querySelector(s);
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const nf = new Intl.NumberFormat("ar-OM"), nf1 = new Intl.NumberFormat("ar-OM", { maximumFractionDigits: 1 });
+  const rtf = new Intl.RelativeTimeFormat("ar-OM", { numeric: "auto" });
+  let cred = null, data = null, tab = "reports";
+
+  function ago(ms) {
+    if (!ms) return "";
+    const d = (ms - Date.now()) / 1000, a = Math.abs(d);
+    if (a < 60) return "الآن";
+    if (a < 3600) return rtf.format(Math.round(d / 60), "minute");
+    if (a < 86400) return rtf.format(Math.round(d / 3600), "hour");
+    return rtf.format(Math.round(d / 86400), "day");
+  }
+  function toast(t) { const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 3000); }
+  const stars = (n) => `<span class="stars${n <= 2 ? " low" : ""}">${"★".repeat(Math.round(n))}${"☆".repeat(5 - Math.round(n))}</span>`;
+  const age = (g) => g === "u18" ? "أقل من ١٨" : g === "59+" ? "٥٩ فأكثر" : (g || "");
+
+  async function rpc(fn, args) {
+    if (!BASE || !KEY) throw new Error("قاعدة البيانات غير مربوطة في config.js.");
+    const h = { "Content-Type": "application/json", apikey: KEY };
+    if (/^eyJ/.test(KEY)) h.Authorization = "Bearer " + KEY;
+    let r, t;
+    try { r = await fetch(BASE + "/rest/v1/rpc/" + fn, { method: "POST", headers: h, body: JSON.stringify(args), cache: "no-store" }); t = await r.text(); }
+    catch (e) { throw new Error("تعذر الاتصال. تأكد من الإنترنت."); }
+    let b = null; try { b = t ? JSON.parse(t) : null; } catch (e) { b = null; }
+    if (!r.ok) throw new Error(b && b.code === "PGRST202" ? "شغّل كود الإعداد الجديد (supabase.sql) في Supabase أولًا." : "تعذر الاتصال بقاعدة البيانات.");
+    return b;
+  }
+  const authError = (e) => e === "locked" ? "الحساب مقفل ١٥ دقيقة بسبب محاولات خاطئة كثيرة." : "اسم المستخدم أو كلمة المرور غير صحيحة.";
+
+  async function load(u, p, quiet) {
+    const res = await rpc("sanad_admin_data", { p_user: u, p_pass: p });
+    if (!res || !res.ok) throw new Error(authError(res && res.error));
+    cred = { u, p }; data = res;
+    try { sessionStorage.setItem("sanad.admin", JSON.stringify(cred)); } catch (e) { /* ignore */ }
+    $("#login").hidden = true; $("#app").hidden = false; $("#refresh").hidden = false; $("#logout").hidden = false;
+    render();
+    if (!quiet) toast("أهلًا " + u);
+  }
+  function logout() {
+    cred = null; data = null;
+    try { sessionStorage.removeItem("sanad.admin"); } catch (e) { /* ignore */ }
+    $("#app").hidden = true; $("#login").hidden = false; $("#refresh").hidden = true; $("#logout").hidden = true;
+    $("#l-pass").value = "";
+  }
+
+  // ---------- reading the data ----------
+  const users = () => (data && data.users) || {};
+  const reqs = () => (data && data.requests) || [];
+  const reqById = (id) => reqs().find(r => r.id === id);
+  const person = (uid, fallback) => {
+    const u = users()[uid];
+    if (!u) return `${esc(fallback || "مستخدم")} <span class="muted">(لا توجد بياناته)</span>`;
+    return `${esc(u.full_name || fallback || "مستخدم")}${u.phone ? ` · <span dir="ltr">${esc(u.phone)}</span>` : ""}${u.wilayat ? ` · ${esc(u.wilayat)}` : ""}`;
+  };
+  function reportItems() {
+    const out = [];
+    ((data && data.reports) || []).forEach(d => (d.items || []).forEach(it => out.push(Object.assign({ doc: d.path, reporter: d.reporter }, it))));
+    return out.sort((a, b) => (b.at || 0) - (a.at || 0));
+  }
+  function userStats() {
+    const m = {};
+    const get = (uid) => (m[uid] = m[uid] || { uid, asHelper: [], asOwner: [], requests: 0 });
+    Object.keys(users()).forEach(get);
+    reqs().forEach(r => {
+      const d = r.data || {}, hs = Array.isArray(d.helpers) ? d.helpers : [];
+      get(r.owner).requests += 1;
+      if (typeof d.rating === "number") hs.forEach(h => { if (h.uid) get(h.uid).asHelper.push(d.rating); });
+      hs.forEach(h => { if (typeof h.rate === "number") get(r.owner).asOwner.push(h.rate); });
+    });
+    const avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    return Object.values(m).map(s => Object.assign(s, { aH: avg(s.asHelper), aO: avg(s.asOwner) }))
+      .sort((a, b) => Math.min(a.aH ?? 9, a.aO ?? 9) - Math.min(b.aH ?? 9, b.aO ?? 9));
+  }
+
+  // ---------- drawing ----------
+  function render() {
+    const rs = reqs(), items = reportItems();
+    const count = (st) => rs.filter(r => (r.data || {}).status === st).length;
+    $("#stats").innerHTML = [
+      [Object.keys(users()).length, "المستخدمون"], [rs.length, "الطلبات"], [count("open"), "مفتوحة"],
+      [count("accepted"), "تم قبولها"], [count("done"), "تمت"], [items.length, "البلاغات"],
+    ].map(([n, t]) => `<div class="stat"><b>${nf.format(n)}</b><span>${t}</span></div>`).join("");
+    document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.tab === tab ? "true" : "false"));
+    const v = $("#view");
+    if (tab === "reports") {
+      v.innerHTML = items.length ? `<div class="list">${items.map(it => {
+        const r = reqById(it.request_id), d = (r && r.data) || {};
+        return `<article class="item">
+          <div class="top"><b class="reason">${esc(it.reason || "بلاغ")}</b><span class="muted">${esc(ago(it.at))}</span></div>
+          <p class="req">${esc(SECT[it.section || d.section] || "")} · «${esc(String(d.details || it.details || "").slice(0, 220))}»${r ? ` <span class="muted">(${esc(STATUS[d.status] || d.status || "")})</span>` : ""}</p>
+          <div class="who"><span>صاحب الطلب: </span>${r ? person(r.owner, d.display_name) : esc(it.display_name || "مستخدم")}</div>
+          <div class="who"><span>المبلِّغ: </span>${person(it.reporter)}</div>
+          <div class="row">${r ? `<button type="button" class="danger" data-act="del" data-id="${esc(it.request_id)}">حذف الطلب</button>` : `<span class="muted">الطلب محذوف</span>`}
+            <button type="button" data-act="dismiss" data-doc="${esc(it.doc)}" data-at="${esc(it.at)}">تجاهل البلاغ</button></div>
+        </article>`;
+      }).join("")}</div>` : `<div class="empty">لا توجد بلاغات 👍</div>`;
+    } else if (tab === "ratings") {
+      const rated = rs.filter(r => { const d = r.data || {}; return typeof d.rating === "number" || (d.helpers || []).some(h => typeof h.rate === "number"); });
+      v.innerHTML = rated.length ? `<div class="list">${rated.map(r => {
+        const d = r.data || {}, hs = Array.isArray(d.helpers) ? d.helpers : [], owner = (users()[r.owner] || {}).full_name || d.display_name || "صاحب الطلب";
+        const helperNames = hs.map(h => (users()[h.uid] || {}).full_name || h.name || "متطوع").join("، ");
+        return `<article class="item">
+          <div class="top"><b>${esc(SECT[d.section] || "")}</b><span class="muted">${esc(ago(d.done_at || d.created_at))}</span></div>
+          <p class="req">«${esc(String(d.details || "").slice(0, 200))}»</p>
+          ${typeof d.rating === "number" ? `<div class="rate"><span>${esc(owner)} قيّم ${esc(helperNames)}</span>${stars(d.rating)}</div>` : ""}
+          ${hs.filter(h => typeof h.rate === "number").map(h => `<div class="rate"><span>${esc((users()[h.uid] || {}).full_name || h.name || "متطوع")} قيّم ${esc(owner)}</span>${stars(h.rate)}</div>`).join("")}
+          <div class="row"><button type="button" class="danger" data-act="del" data-id="${esc(r.id)}">حذف الطلب</button></div>
+        </article>`;
+      }).join("")}</div>` : `<div class="empty">لا توجد تقييمات بعد.</div>`;
+    } else {
+      const list = userStats();
+      const cell = (a, n) => a == null ? `<span class="muted">—</span>` : `${stars(a)} <span class="muted">${nf1.format(a)} (${nf.format(n)})</span>`;
+      v.innerHTML = list.length ? `<div class="tablewrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>الولاية</th><th>العمر</th><th>كمتطوع</th><th>كصاحب طلب</th><th>طلباته</th></tr></thead><tbody>
+        ${list.map(s => { const u = users()[s.uid] || {}; return `<tr><td>${esc(u.full_name || "مستخدم")}</td><td dir="ltr">${esc(u.phone || "")}</td><td>${esc(u.wilayat || "")}</td><td>${esc(age(u.age_group))}</td><td>${cell(s.aH, s.asHelper.length)}</td><td>${cell(s.aO, s.asOwner.length)}</td><td>${nf.format(s.requests)}</td></tr>`; }).join("")}
+        </tbody></table></div><p class="muted">الأقل تقييمًا في الأعلى.</p>` : `<div class="empty">لا يوجد مستخدمون بعد.</div>`;
+    }
+  }
+
+  // ---------- events ----------
+  $("#f-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const u = $("#l-user").value.trim().toLowerCase(), p = $("#l-pass").value, msg = $("#l-msg");
+    msg.hidden = true;
+    if (!u || !p) { msg.textContent = "اكتب اسم المستخدم وكلمة المرور."; msg.hidden = false; return; }
+    $("#l-btn").disabled = true;
+    try { await load(u, p); } catch (err) { msg.textContent = err.message; msg.hidden = false; }
+    $("#l-btn").disabled = false;
+  });
+  $("#logout").addEventListener("click", logout);
+  $("#refresh").addEventListener("click", async () => { try { await load(cred.u, cred.p, true); toast("تم التحديث."); } catch (err) { toast(err.message); } });
+  document.addEventListener("click", async (e) => {
+    const t = e.target.closest("[data-tab]");
+    if (t) { tab = t.dataset.tab; render(); return; }
+    const b = e.target.closest("[data-act]");
+    if (!b || !cred) return;
+    try {
+      if (b.dataset.act === "del") {
+        if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "اضغط مرة ثانية للتأكيد"; setTimeout(() => { b.classList.remove("sure"); b.textContent = "حذف الطلب"; }, 4000); return; }
+        const res = await rpc("sanad_admin_delete_request", { p_user: cred.u, p_pass: cred.p, p_id: b.dataset.id });
+        if (!res || !res.ok) throw new Error(authError(res && res.error));
+        toast("حُذف الطلب.");
+      } else if (b.dataset.act === "dismiss") {
+        const res = await rpc("sanad_admin_dismiss", { p_user: cred.u, p_pass: cred.p, p_report: b.dataset.doc, p_at: Number(b.dataset.at) });
+        if (!res || !res.ok) throw new Error(authError(res && res.error));
+        toast("أُزيل البلاغ.");
+      }
+      await load(cred.u, cred.p, true);
+    } catch (err) { toast(err.message); }
+  });
+  // stay signed in while this tab is open
+  try {
+    const saved = JSON.parse(sessionStorage.getItem("sanad.admin") || "null");
+    if (saved && saved.u && saved.p) load(saved.u, saved.p, true).catch(() => logout());
+  } catch (e) { /* ignore */ }
+})();
+</script>
+</body>
+</html>

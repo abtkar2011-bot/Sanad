@@ -311,6 +311,90 @@ grant execute on function public.sanad_hello(text), public.sanad_get(text, text)
   public.sanad_pull(text, text, text, int), public.sanad_set(text, text, jsonb),
   public.sanad_merge(text, text, jsonb), public.sanad_delete(text, text) to anon, authenticated;
 
+-- ===== لوحة المطورين (admin.html) =====
+-- الحسابات في جدول خاص؛ كلمات المرور محفوظة مشفّرة (bcrypt) ولا تظهر في الموقع.
+-- بعد 5 محاولات خاطئة يُقفل الحساب 15 دقيقة.
+create extension if not exists pgcrypto with schema extensions;
+
+create table if not exists public.sanad_admins (
+  username     text primary key,
+  pass_hash    text not null,
+  fails        int not null default 0,
+  locked_until timestamptz
+);
+alter table public.sanad_admins enable row level security;
+revoke all on public.sanad_admins from public, anon, authenticated;
+
+create or replace function public.sanad_admin_auth(p_user text, p_pass text) returns text
+language plpgsql volatile security definer set search_path = '' as $$
+declare a public.sanad_admins;
+begin
+  select * into a from public.sanad_admins where username = lower(trim(coalesce(p_user, ''))) for update;
+  if not found then return 'denied'; end if;
+  if a.locked_until is not null and a.locked_until > now() then return 'locked'; end if;
+  if extensions.crypt(coalesce(p_pass, ''), a.pass_hash) = a.pass_hash then
+    update public.sanad_admins set fails = 0, locked_until = null where username = a.username;
+    return 'ok';
+  end if;
+  update public.sanad_admins
+  set fails = case when a.fails + 1 >= 5 then 0 else a.fails + 1 end,
+      locked_until = case when a.fails + 1 >= 5 then now() + interval '15 minutes' else null end
+  where username = a.username;
+  return case when a.fails + 1 >= 5 then 'locked' else 'denied' end;
+end $$;
+
+create or replace function public.sanad_admin_data(p_user text, p_pass text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare st text := public.sanad_admin_auth(p_user, p_pass);
+begin
+  if st <> 'ok' then return jsonb_build_object('ok', false, 'error', st); end if;
+  return jsonb_build_object(
+    'ok', true,
+    'now', public.sanad_ts(now()),
+    'reports', (select coalesce(jsonb_agg(jsonb_build_object('path', d.path, 'reporter', d.owner, 'items', coalesce(d.data -> 'items', '[]'::jsonb))
+                  order by d.updated_at desc), '[]'::jsonb)
+                from public.sanad_docs d where d.coll = 'reports' and not d.deleted),
+    'requests', (select coalesce(jsonb_agg(jsonb_build_object('id', split_part(d.path, '/', 2), 'owner', d.owner, 'data', d.data)
+                   order by d.created_at desc), '[]'::jsonb)
+                 from (select * from public.sanad_docs x where x.coll = 'help_requests' and not x.deleted
+                       and x.created_at > now() - interval '120 days' order by x.created_at desc limit 2000) d),
+    'users', (select coalesce(jsonb_object_agg(d.owner, jsonb_build_object(
+                'full_name', d.data ->> 'full_name', 'phone', d.data ->> 'phone', 'wilayat', d.data ->> 'wilayat',
+                'age_group', d.data ->> 'age_group', 'gender', d.data ->> 'gender')), '{}'::jsonb)
+              from public.sanad_docs d where d.coll like 'data/users/%' and not d.deleted)
+  );
+end $$;
+
+create or replace function public.sanad_admin_delete_request(p_user text, p_pass text, p_id text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare st text := public.sanad_admin_auth(p_user, p_pass);
+begin
+  if st <> 'ok' then return jsonb_build_object('ok', false, 'error', st); end if;
+  if coalesce(p_id, '') !~ '^[A-Za-z0-9_-]{1,64}$' then return jsonb_build_object('ok', false, 'error', 'bad_id'); end if;
+  update public.sanad_docs set deleted = true, data = '{}'::jsonb
+  where (path = 'help_requests/' || p_id or starts_with(path, 'help_requests/' || p_id || '/')) and not deleted;
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.sanad_admin_dismiss(p_user text, p_pass text, p_report text, p_at bigint) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare st text := public.sanad_admin_auth(p_user, p_pass);
+begin
+  if st <> 'ok' then return jsonb_build_object('ok', false, 'error', st); end if;
+  update public.sanad_docs
+  set data = jsonb_set(data, '{items}', coalesce((select jsonb_agg(e.v order by e.i)
+               from jsonb_array_elements(coalesce(data -> 'items', '[]'::jsonb)) with ordinality as e(v, i)
+               where (e.v ->> 'at') is distinct from p_at::text), '[]'::jsonb))
+  where path = p_report and coll = 'reports' and not deleted;
+  return jsonb_build_object('ok', true);
+end $$;
+
+revoke all on function public.sanad_admin_auth(text, text) from public, anon, authenticated;
+revoke all on function public.sanad_admin_data(text, text), public.sanad_admin_delete_request(text, text, text),
+  public.sanad_admin_dismiss(text, text, text, bigint) from public;
+grant execute on function public.sanad_admin_data(text, text), public.sanad_admin_delete_request(text, text, text),
+  public.sanad_admin_dismiss(text, text, text, bigint) to anon, authenticated;
+
 notify pgrst, 'reload schema';
 
 select 'تم تجهيز قاعدة بيانات سند ✓' as "النتيجة";
