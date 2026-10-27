@@ -92,6 +92,9 @@ h1, h2, h3 { text-wrap: balance; }
 .main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; padding-block: 16px 24px; scroll-margin-top: 64px; }
 .mapcard, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; }
 .mapcard { border-radius: 16px; box-shadow: 0 4px 16px rgba(19, 38, 29, .06); }
+.mapcard.inline { box-shadow: none; border-radius: 14px; }
+.mapcard.inline .chips, .mapcard.inline .map-cap { display: none; }
+.mapcard.inline .mapwrap { height: 340px; min-height: 0; }
 .panel { border: 0; border-radius: 0; background: transparent; }
 .panel .view { padding: 2px 0 18px; }
 .mapcard { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); overflow: hidden; }
@@ -530,6 +533,8 @@ body::before { background: var(--green); }
         </fieldset>
         <div class="field">
           <span class="lbl">موقعك</span>
+          <p class="hint">اضغط على مكان بيتك في الخريطة (قرّبها للدقة)، أو استخدم «حدّد موقعي تلقائيًا».</p>
+          <div id="reg-map-slot"></div>
           <div class="locline" id="r-loc"></div>
           <input type="text" id="r-paste" class="paste" placeholder="أو الصق رابط موقعك من خرائط Google" aria-label="رابط الموقع" dir="auto">
         </div>
@@ -1183,6 +1188,14 @@ body::before { background: var(--green); }
       svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
     },
     tap(clientX, clientY, pinId) {
+      if (regInline() && !S.pick) {
+        const [x, y] = this.toMap(clientX, clientY), ll = toLL(x, y);
+        if (!wilayatAt(ll.lat, ll.lng)) { toast("اختر مكانًا داخل سلطنة عُمان.", true); return; }
+        setRegLoc(ll);
+        if (this.satOn ? this.upp > 0.012 : this.upp > 0.25) this.go(x, y, this.satOn ? 0.004 : 0.09, true);
+        renderAccount(); renderPick();
+        return;
+      }
       if (S.pick) {
         const [x, y] = this.toMap(clientX, clientY), ll = toLL(x, y);
         S.pick.lat = ll.lat; S.pick.lng = ll.lng;
@@ -1222,7 +1235,7 @@ body::before { background: var(--green); }
   function renderPick() {
     const g = $("#m-pick");
     let loc = S.pick && typeof S.pick.lat === "number" ? S.pick : null;
-    if (!loc && !S.pick) loc = S.tab === "account" && (!S.me || S.editing) ? S.regLoc : (S.tab === "new" ? S.reqLoc : null);
+    if (!loc && !S.pick) loc = regInline() ? S.regLoc : (S.tab === "new" ? S.reqLoc : null);
     if (!loc) { g.innerHTML = ""; return; }
     const [x, y] = toXY(loc.lat, loc.lng);
     g.innerHTML = `<g class="scaled" data-x="${x.toFixed(3)}" data-y="${y.toFixed(3)}"><path class="pick-pin" d="M0 0C-4 -6.5 -12 -12 -12 -21A12 12 0 1 1 12 -21C12 -12 4 -6.5 0 0Z"></path><circle cx="0" cy="-21" r="4.5" fill="var(--land)"></circle></g>`;
@@ -1236,9 +1249,21 @@ body::before { background: var(--green); }
     const items = [["all", "الكل", "grid"]].concat(keys.map(k => [k, SECTIONS[k].short, SECTIONS[k].icon]));
     $("#sec-chips").innerHTML = items.map(([k, label, ic]) => `<button type="button" class="chip" data-action="sec" data-sec="${k}" aria-pressed="${S.filterSec === k}">${icon(ic)}${esc(label)}</button>`).join("");
   }
+  const regInline = () => (S.me ? S.tab : "account") === "account" && (!S.me || S.editing);
   function renderTabs() {
     const simple = simpleUI(), eld = isElderly(), t = S.me ? S.tab : "account"; // sign-up comes first
-    $(".mapcard").hidden = !(S.pick || (!simple && !eld && (t === "map" || (t === "detail" && S.detailBack === "map"))));
+    const card = $(".mapcard"), slot = $("#reg-map-slot"), main = $("#top");
+    if (regInline()) {
+      // the sign-up / edit form shows the map right where you choose your place
+      if (card.parentNode !== slot) {
+        slot.appendChild(card); card.classList.add("inline");
+        requestAnimationFrame(() => { map.measure(); if (S.regLoc) map.focus(S.regLoc.lat, S.regLoc.lng, 3, false); else map.fitAll(false); });
+      }
+      card.hidden = false;
+    } else {
+      if (card.parentNode !== main) { main.insertBefore(card, main.firstChild); card.classList.remove("inline"); requestAnimationFrame(() => map.measure()); }
+      card.hidden = !(S.pick || (!simple && !eld && (t === "map" || (t === "detail" && S.detailBack === "map"))));
+    }
     $("#menu-btn").hidden = !S.me; $("#acct-back").hidden = !S.me || simple;
     ["home", "sections", "map"].forEach(v => { $("#v-" + v).hidden = eld || t !== v; });
     $("#top").classList.toggle("is-simple", simple);
@@ -1393,8 +1418,8 @@ body::before { background: var(--green); }
     return `<button type="button" class="${primary ? "btn btn-primary btn-sm" : "btn-link"} gps" data-action="gps" data-for="${purpose}" ${busy ? "disabled" : ""}>${icon("locate")}${busy ? "جارِ تحديد موقعك..." : (purpose === "request" ? "موقعي الحالي" : "حدّد موقعي تلقائيًا")}</button>`;
   }
   function locLine(loc, emptyText, purpose, isDefault) {
-    const btn = `<button type="button" class="btn-link" data-action="pick" data-for="${purpose}">${loc ? "غيّر المكان" : (CAN_GEO ? "أو حدّده على الخريطة" : "حدّد على الخريطة")}</button>`;
-    if (!loc) return CAN_GEO ? `${gpsBtn(purpose, true)}${btn}` : `${icon("pin")}<span class="muted">${esc(emptyText)}</span>${btn}`;
+    const btn = purpose === "register" ? "" : `<button type="button" class="btn-link" data-action="pick" data-for="${purpose}">${loc ? "غيّر المكان" : (CAN_GEO ? "أو حدّده على الخريطة" : "حدّد على الخريطة")}</button>`;
+    if (!loc) return CAN_GEO ? `${gpsBtn(purpose, true)}${btn}${purpose === "register" ? `<span class="muted">لم تحدد موقعك بعد.</span>` : ""}` : `${icon("pin")}<span class="muted">${esc(emptyText)}</span>${btn}`;
     const w = wilayatAt(loc.lat, loc.lng);
     return `${icon("pin")}<span>${esc(isDefault ? "موقعك المسجّل" : (w ? "مكان محدد في " + wilLabel(w) : "مكان محدد على الخريطة"))}</span>${btn}${gpsBtn(purpose, false)}${!isDefault && purpose === "request" ? `<button type="button" class="btn-link quiet" data-action="loc-reset">موقعي المسجّل</button>` : ""}`;
   }
@@ -1501,7 +1526,7 @@ body::before { background: var(--green); }
       map.svg.classList.add("picking"); return;
     }
     map.svg.classList.remove("picking");
-    o.innerHTML = !S.me && S.connected !== null ? `<div class="map-note"><span>سجّل وحدّد موقعك لتظهر لك الطلبات القريبة منك.</span><button type="button" class="btn btn-primary btn-sm" data-action="tab" data-tab="account">سجّل</button></div>` : "";
+    o.innerHTML = "";
   }
 
   // ================= simple mode (59+) =================
@@ -1965,7 +1990,7 @@ body::before { background: var(--green); }
       case "zoom-in": { const t = map.target || map; map.go(t.cx, t.cy, t.upp / 1.8); break; }
       case "zoom-out": { const t = map.target || map; map.go(t.cx, t.cy, t.upp * 1.8); break; }
       case "map-mode": map.setSat(!map.satOn, true); break;
-      case "zoom-me": if (S.me) map.focus(S.me.lat, S.me.lng, 28); else if (CAN_GEO) locateMe("view"); else toast("سجّل وحدّد موقعك أولًا."); break;
+      case "zoom-me": if (regInline() && CAN_GEO) locateMe("register"); else if (S.me) map.focus(S.me.lat, S.me.lng, 28); else if (CAN_GEO) locateMe("view"); else toast("سجّل وحدّد موقعك أولًا."); break;
       case "gps": locateMe(el.dataset.for); break;
       case "pick": startPick(el.dataset.for); break;
       case "pick-ok": finishPick(true); break;
