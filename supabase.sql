@@ -215,10 +215,10 @@ begin
   if not found or d.deleted then raise exception 'sanad:not_found'; end if;
   if d.owner = me then
     if k = 'message' then raise exception 'sanad:forbidden'; end if;
-    newdata := d.data || (patch - 'created_by');
+    newdata := d.data || (patch - 'created_by' - 'helpers');
   elsif k = 'request' then
-    -- someone else: they may only add or remove themselves as a helper
-    if d.data ->> 'status' = 'done' then raise exception 'sanad:closed'; end if;
+    -- someone else: they may only add or remove themselves as a helper,
+    -- and once the help is done, rate the person they helped
     if not (patch ? 'helpers') then raise exception 'sanad:forbidden'; end if;
     cur := case when jsonb_typeof(d.data -> 'helpers') = 'array' then d.data -> 'helpers' else '[]'::jsonb end;
     select coalesce(jsonb_agg(e.h order by e.i), '[]'::jsonb) into others
@@ -227,7 +227,13 @@ begin
     select e.h into mine
     from jsonb_array_elements(case when jsonb_typeof(patch -> 'helpers') = 'array' then patch -> 'helpers' else '[]'::jsonb end) as e(h)
     where e.h ->> 'uid' = me limit 1;
-    if mine is null then
+    if d.data ->> 'status' = 'done' then
+      if existing is null or mine is null or jsonb_typeof(mine -> 'rate') <> 'number' then raise exception 'sanad:closed'; end if;
+      select coalesce(jsonb_agg(case when e.h ->> 'uid' = me
+               then e.h || jsonb_build_object('rate', least(5, greatest(1, round((mine ->> 'rate')::numeric))))
+               else e.h end order by e.i), '[]'::jsonb) into hs
+      from jsonb_array_elements(cur) with ordinality as e(h, i);
+    elsif mine is null then
       hs := others;
     elsif existing is not null then
       hs := cur;
@@ -244,7 +250,7 @@ begin
                    else to_jsonb(floor(extract(epoch from now()) * 1000)::bigint) end));
     end if;
     newdata := d.data || jsonb_build_object('helpers', hs);
-    if coalesce(d.data ->> 'timing', '') <> 'dated' then
+    if coalesce(d.data ->> 'timing', '') <> 'dated' and d.data ->> 'status' is distinct from 'done' then
       newdata := newdata || jsonb_build_object('status', case when jsonb_array_length(hs) > 0 then 'accepted' else 'open' end);
     end if;
   else
