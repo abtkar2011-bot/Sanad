@@ -1,6 +1,6 @@
 // سند: يحفظ ملفات الموقع ليفتح بسرعة ويعمل كتطبيق، حتى لو النت ضعيف.
 // الصفحة وملفات الإعداد تُجلب من النت أولًا عشان التحديثات توصل على طول.
-const CACHE = "sanad-v1";
+const CACHE = "sanad-v2";
 const FONTS = "sanad-fonts-v1";
 const SHELL = ["./", "./index.html", "./config.js", "./cloud.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
