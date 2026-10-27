@@ -107,7 +107,7 @@
 
   // ---------- collections kept in sync by polling ----------
   var colls = {};
-  function pollMs(coll) { return coll === "help_requests" ? 6000 : /\/messages$/.test(coll) ? 3000 : 15000; }
+  function pollMs(coll) { return coll === "help_requests" ? 6000 : /\/(messages|live)$/.test(coll) ? 3000 : 15000; }
   function newState(coll) { return { coll: coll, docs: new Map(), tomb: new Map(), cursor: null, loaded: false, listeners: new Set(), timer: null, inflight: null, failed: 0, errored: false }; }
 
   function applyRow(st, row) {

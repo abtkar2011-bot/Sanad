@@ -6,7 +6,7 @@
 -- بل عن طريق الدوال أدناه فقط، وكل دالة تتحقق من صاحب الجهاز:
 --   - الطلبات والرسائل الصوتية: يقرؤها الجميع، ويعدّلها صاحبها فقط.
 --   - المتطوع يستطيع فقط إضافة نفسه أو سحب نفسه من الطلب.
---   - المحادثة: يقرؤها ويكتب فيها صاحب الطلب ومن قبله فقط.
+--   - المحادثة والموقع المباشر: يراهما صاحب الطلب ومن قبله فقط.
 --   - الحساب والبلاغ: لا يراهما إلا صاحبهما (وأنت من لوحة Supabase).
 
 create table if not exists public.sanad_docs (
@@ -45,6 +45,7 @@ language sql immutable set search_path = '' as $$
     when p ~ '^help_requests/[A-Za-z0-9_-]{1,64}$' then 'request'
     when p ~ '^help_requests/[A-Za-z0-9_-]{1,64}/messages/[A-Za-z0-9_-]{1,64}$' then 'message'
     when p ~ '^help_requests/[A-Za-z0-9_-]{1,64}/voice/clip$' then 'voice'
+    when p ~ '^help_requests/[A-Za-z0-9_-]{1,64}/live/[A-Za-z0-9_-]{1,64}$' then 'live'
     when p ~ '^data/users/[A-Za-z0-9_-]{1,64}/profile$' then 'profile'
     when p ~ '^reports/[A-Za-z0-9_-]{1,64}$' then 'report'
   end
@@ -53,7 +54,7 @@ $$;
 create or replace function public.sanad_max(k text) returns int
 language sql immutable set search_path = '' as $$
   select case k when 'voice' then 300000 when 'report' then 40000 when 'request' then 8000
-                when 'profile' then 3000 else 1500 end
+                when 'profile' then 3000 when 'live' then 400 else 1500 end
 $$;
 
 create or replace function public.sanad_ts(t timestamptz) returns text
@@ -92,7 +93,7 @@ begin
   if k is null then raise exception 'sanad:bad_path'; end if;
   select * into d from public.sanad_docs where path = p_path;
   if not found or d.deleted then return null; end if;
-  if k = 'message' and not public.sanad_is_participant(split_part(p_path, '/', 1) || '/' || split_part(p_path, '/', 2), me) then
+  if k in ('message', 'live') and not public.sanad_is_participant(split_part(p_path, '/', 1) || '/' || split_part(p_path, '/', 2), me) then
     return null;
   end if;
   if k in ('profile', 'report') and d.owner <> me then return null; end if;
@@ -113,7 +114,7 @@ begin
   if me is null then raise exception 'sanad:bad_key'; end if;
   if p_coll = 'help_requests' or p_coll ~ '^help_requests/[A-Za-z0-9_-]{1,64}/voice$' then
     priv := false;
-  elsif p_coll ~ '^help_requests/[A-Za-z0-9_-]{1,64}/messages$' then
+  elsif p_coll ~ '^help_requests/[A-Za-z0-9_-]{1,64}/(messages|live)$' then
     if not public.sanad_is_participant(split_part(p_coll, '/', 1) || '/' || split_part(p_coll, '/', 2), me) then
       return jsonb_build_object('now', now_t, 'rows', '[]'::jsonb);
     end if;
@@ -178,6 +179,13 @@ begin
       'text', left(coalesce(dat ->> 'text', ''), 300),
       'at', case when jsonb_typeof(dat -> 'at') = 'number' then dat -> 'at'
                  else to_jsonb(floor(extract(epoch from now()) * 1000)::bigint) end);
+  elsif k = 'live' then
+    -- where a helper or the person who asked is right now; only the two of them see it
+    if not public.sanad_is_participant(ppath, me) or split_part(p_path, '/', 4) <> me then raise exception 'sanad:forbidden'; end if;
+    if jsonb_typeof(dat -> 'lat') <> 'number' or jsonb_typeof(dat -> 'lng') <> 'number' then raise exception 'sanad:bad_data'; end if;
+    dat := jsonb_build_object('lat', dat -> 'lat', 'lng', dat -> 'lng', 'acc', coalesce(dat -> 'acc', '0'::jsonb),
+                              'at', coalesce(dat -> 'at', to_jsonb(floor(extract(epoch from now()) * 1000)::bigint)),
+                              'name', left(coalesce(dat ->> 'name', ''), 40));
   elsif k = 'voice' then
     select owner into pown from public.sanad_docs where path = ppath and not deleted;
     if pown is not null and pown <> me then raise exception 'sanad:forbidden'; end if;
@@ -258,6 +266,11 @@ begin
   end if;
   if octet_length(newdata::text) > public.sanad_max(k) then raise exception 'sanad:too_big'; end if;
   update public.sanad_docs set data = newdata where path = p_path returning * into d;
+  if k = 'request' and newdata ->> 'status' = 'done' then
+    -- the help is over: stop showing where people are
+    update public.sanad_docs set deleted = true, data = '{}'::jsonb
+    where starts_with(path, p_path || '/live/') and not deleted;
+  end if;
   return public.sanad_row(d);
 end $$;
 

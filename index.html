@@ -95,6 +95,14 @@ h1, h2, h3 { text-wrap: balance; }
 .mapcard.inline { box-shadow: none; border-radius: 14px; }
 .mapcard.inline .chips, .mapcard.inline .map-cap { display: none; }
 .mapcard.inline .mapwrap { height: 340px; min-height: 0; }
+.live-dot { fill: #1f6fd1; stroke: #fff; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.live-halo { fill: #1f6fd1; fill-opacity: .25; transform-box: fill-box; transform-origin: center; animation: livepulse 1.8s ease-out infinite; }
+.live.me .live-dot, .live.me .live-halo { fill: var(--green); }
+.live-name { font-family: var(--body); font-size: 12px; font-weight: 700; text-anchor: middle; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, .7); stroke-width: 3px; stroke-linejoin: round; }
+@keyframes livepulse { from { transform: scale(.7); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .live-halo { animation: none; } }
+.live-box .live-line { margin: 0; font-weight: 700; color: var(--green-ink); }
+.s-live { margin: 0; font-size: 18px; font-weight: 700; color: var(--green-ink); background: var(--green-soft); border-radius: 12px; padding: 10px 14px; }
 .panel { border: 0; border-radius: 0; background: transparent; }
 .panel .view { padding: 2px 0 18px; }
 .mapcard { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); overflow: hidden; }
@@ -321,7 +329,7 @@ body::before { background: var(--green); }
 .tiles.two .tile b { font-size: 16px; }
 .rate-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
 .stars-ro { color: #d99a00; letter-spacing: 1px; white-space: nowrap; direction: ltr; }
-.main.is-simple .mapcard, .main.is-elderly .tabs { display: none; }
+.main.is-simple .mapcard:not(.inline), .main.is-elderly .tabs { display: none; }
 .main.is-simple .panel { border-radius: 16px; }
 .simple { padding: 22px 20px; gap: 16px; font-size: 18px; }
 .s-hello { font-size: 26px; font-weight: 700; margin: 0; line-height: 1.4; }
@@ -420,6 +428,7 @@ body::before { background: var(--green); }
         <g id="m-labels"></g>
         <g id="m-radius"></g>
         <g id="m-pins"></g>
+        <g id="m-live"></g>
         <g id="m-me"></g>
         <g id="m-pick"></g>
       </svg>
@@ -956,6 +965,7 @@ body::before { background: var(--green); }
     reports: [], reportOpen: false, confirmDelete: false,
     msgs: [], msgFor: null, msgUnsub: null,
     pick: null, regLoc: null, reqLoc: null, editing: false, locating: null,
+    share: null, live: { for: null, unsub: null, others: [], fitted: false }, demoLive: {},
     demo: false, demoReqs: [], demoMsgs: {}, demoReplied: {}, demoVoice: {}, voiceCache: {},
     voice: null, voiceFor: "new",
     simple: { step: "home", kind: null, text: "", confirmCancel: false, skipRate: {} }, simpleKey: "",
@@ -1113,7 +1123,7 @@ body::before { background: var(--green); }
         t.setAttribute("x", L.tx); t.setAttribute("y", (L.ty - 6 * u).toFixed(3));
         t.setAttribute("font-size", (12 * u).toFixed(3)); t.setAttribute("stroke-width", (3 * u).toFixed(3));
       }
-      document.querySelectorAll("#m-pins .pin, #m-me .scaled, #m-pick .scaled").forEach(g => g.setAttribute("transform", `translate(${g.dataset.x} ${g.dataset.y}) scale(${u.toFixed(4)})`));
+      document.querySelectorAll("#m-pins .pin, #m-me .scaled, #m-pick .scaled, #m-live .scaled").forEach(g => g.setAttribute("transform", `translate(${g.dataset.x} ${g.dataset.y}) scale(${u.toFixed(4)})`));
       const rl = $("#m-rad-label");
       if (rl && this.radLabel) {
         rl.setAttribute("x", this.radLabel.x); rl.setAttribute("y", (this.radLabel.y + 15 * u).toFixed(3));
@@ -1218,9 +1228,13 @@ body::before { background: var(--green); }
           ${r.created_by === myId() ? '<circle class="pin-dot" cx="9" cy="-30" r="4"></circle>' : ""}
         </g></g>`;
       }).join("");
-      let me = "", rad = "";
+      let me = "", rad = "", live = "";
       this.radLabel = null;
-      if (S.me && typeof S.me.lat === "number") {
+      const dot = (q, cls) => { const [x, y] = toXY(q.lat, q.lng); return `<g class="scaled live${cls}" data-x="${x.toFixed(3)}" data-y="${y.toFixed(3)}"><circle class="live-halo" r="15"></circle><circle class="live-dot" r="7.5"></circle><text class="live-name" y="-15">${esc(q.name || "")}</text></g>`; };
+      if (S.live.for) S.live.others.forEach(q => { live += dot(q, ""); });
+      if (S.share && S.share.pos && S.share.id === S.live.for) live += dot(Object.assign({}, S.share.pos, { name: "أنت" }), " me");
+      $("#m-live").innerHTML = live;
+      if (S.me && typeof S.me.lat === "number" && !S.live.for) {
         const [x, y] = toXY(S.me.lat, S.me.lng);
         const rr = (RADIUS_KM / (111.32 * Math.cos(S.me.lat * Math.PI / 180))) * P.s;
         rad = `<circle class="m-radius" cx="${x.toFixed(3)}" cy="${y.toFixed(3)}" r="${rr.toFixed(3)}"></circle><text class="m-rad-label" id="m-rad-label">١٠ كم</text>`;
@@ -1252,18 +1266,7 @@ body::before { background: var(--green); }
   const regInline = () => (S.me ? S.tab : "account") === "account" && (!S.me || S.editing);
   function renderTabs() {
     const simple = simpleUI(), eld = isElderly(), t = S.me ? S.tab : "account"; // sign-up comes first
-    const card = $(".mapcard"), slot = $("#reg-map-slot"), main = $("#top");
-    if (regInline()) {
-      // the sign-up / edit form shows the map right where you choose your place
-      if (card.parentNode !== slot) {
-        slot.appendChild(card); card.classList.add("inline");
-        requestAnimationFrame(() => { map.measure(); if (S.regLoc) map.focus(S.regLoc.lat, S.regLoc.lng, 3, false); else map.fitAll(false); });
-      }
-      card.hidden = false;
-    } else {
-      if (card.parentNode !== main) { main.insertBefore(card, main.firstChild); card.classList.remove("inline"); requestAnimationFrame(() => map.measure()); }
-      card.hidden = !(S.pick || (!simple && !eld && (t === "map" || (t === "detail" && S.detailBack === "map"))));
-    }
+
     $("#menu-btn").hidden = !S.me; $("#acct-back").hidden = !S.me || simple;
     ["home", "sections", "map"].forEach(v => { $("#v-" + v).hidden = eld || t !== v; });
     $("#top").classList.toggle("is-simple", simple);
@@ -1394,7 +1397,12 @@ body::before { background: var(--green); }
         <div class="stars" role="group" aria-label="التقييم">${[1, 2, 3, 4, 5].map(n => `<button type="button" class="${n <= myRate ? "on" : ""}" data-action="rate-owner" data-id="${esc(r.id)}" data-v="${n}" aria-label="${n} من ٥">${icon("star")}</button>`).join("")}</div>
         ${typeof r.rating === "number" ? `<div class="rate-row"><span>تقييم ${esc(r.display_name || "صاحب الطلب")} لك</span>${starsRO(r.rating)}</div>` : `<p class="muted" style="margin:0;font-size:13px">لم يقيّمك ${esc(r.display_name || "صاحب الطلب")} بعد.</p>`}</div>`;
     }
-    const chat = (mine || amHelper) && hs.length && !isMinor() ? chatHTML(r.id) : "";
+    const sharing = S.share && S.share.id === r.id;
+    const liveBox = liveRequest(r) ? `<div class="box live-box"><div class="box-title">${icon("locate")}الموقع المباشر</div>
+      <p class="live-line" id="live-text">${esc(S.live.for === r.id ? liveText() : "")}</p>
+      ${sharing ? `<button type="button" class="btn btn-ghost" data-action="share-stop">أوقف مشاركة موقعي</button>` : `<button type="button" class="btn btn-primary" data-action="share-start" data-id="${esc(r.id)}">${icon("locate")}شارك موقعي المباشر</button>`}
+      <p class="muted" style="margin:0;font-size:12.5px">يظهر موقعك لـ${esc(mine ? "المتطوع" : (r.display_name || "صاحب الطلب"))} فقط، ويتوقف تلقائيًا بعد انتهاء الطلب.</p></div>` : "";
+    const chat = liveBox + ((mine || amHelper) && hs.length && !isMinor() ? chatHTML(r.id) : "");
     const report = (!mine && S.me && (r.demo || canDb())) ? (S.reportOpen
       ? `<div class="box"><div class="box-title">سبب الإبلاغ</div>${REPORT_REASONS.map((t, i) => `<label class="check"><input type="radio" name="rep-reason" value="${i}" ${i === 0 ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}<div class="row"><button type="button" class="btn btn-danger btn-sm" data-action="report-send" data-id="${esc(r.id)}">أرسل البلاغ</button><button type="button" class="btn btn-ghost btn-sm" data-action="report-cancel">إلغاء</button></div></div>`
       : `<button type="button" class="btn-link quiet" data-action="report-open" style="align-self:flex-start">إبلاغ عن هذا الطلب</button>`) : "";
@@ -1541,7 +1549,7 @@ body::before { background: var(--green); }
     if (!isElderly()) { if (v.innerHTML) v.innerHTML = ""; S.simpleKey = ""; return; }
     const active = simpleActive(), toRate = active ? null : simpleToRate();
     const sv = S.voice && S.voice.for === "simple" ? S.voice.state : "";
-    const key = JSON.stringify([S.simple.step, S.simple.kind, sv, S.simple.confirmCancel, active && [active.id, active.status, helpers(active).length], toRate && toRate.id, playing && playing.id, S.me.display_name]);
+    const key = JSON.stringify([S.simple.step, S.simple.kind, sv, S.simple.confirmCancel, active && [active.id, active.status, helpers(active).length], toRate && toRate.id, playing && playing.id, S.me.display_name, !!S.share]);
     if (key === S.simpleKey) return;
     S.simpleKey = key;
     let html = `<h2 class="s-hello">أهلًا يا ${esc(S.me.display_name || "")}</h2>`;
@@ -1559,6 +1567,8 @@ body::before { background: var(--green); }
         ${hs.length ? `<p class="s-state">${icon("check")}قبل ${esc(hs[0].name || "متطوع")} طلبك، ويتواصل معك هنا.</p>` : `<p class="s-state">${icon("clock")}ننتظر متطوعًا قريبًا منك...</p>`}
         ${active.has_voice ? `<div class="voice">${playBtn(active.id, "استمع لرسالتك", true)}</div>` : ""}
         ${active.demo ? '<p class="note">تجربة: هذا الطلب على جهازك فقط.</p>' : ""}
+        ${hs.length && liveRequest(active) ? `<p class="s-live" id="live-text-s">${esc(S.live.for === active.id ? liveText() : "")}</p><div id="live-map-slot"></div>
+          ${S.share && S.share.id === active.id ? `<button type="button" class="btn btn-ghost" data-action="share-stop">أوقف مشاركة موقعي</button>` : `<button type="button" class="btn btn-ghost" data-action="share-start" data-id="${esc(active.id)}">${icon("locate")}شارك موقعي مع ${esc(hs[0].name || "المتطوع")}</button>`}` : ""}
         ${hs.length ? chatHTML(active.id) : ""}
         <div class="s-actions">${hs.length ? `<button type="button" class="btn btn-primary" data-action="s-done" data-id="${esc(active.id)}">تمت المساعدة</button>` : ""}
           ${S.simple.confirmCancel ? `<p class="s-text">متأكد أنك تريد إلغاء الطلب؟</p><button type="button" class="btn btn-danger" data-action="s-cancel" data-id="${esc(active.id)}">نعم، ألغِ الطلب</button><button type="button" class="btn btn-ghost" data-action="s-cancel-no">لا</button>` : `<button type="button" class="btn btn-ghost" data-action="s-cancel-ask">ألغِ الطلب</button>`}</div></div>`;
@@ -1576,6 +1586,7 @@ body::before { background: var(--green); }
         <button type="button" class="s-btn" data-action="s-pick" data-kind="other">${icon("handheart")}<span>أحتاج مساعدة أخرى</span></button>
         ${S.demo && !canDb() ? '<p class="note">تجربة: طلباتك تبقى على جهازك فقط.</p>' : ""}`;
     }
+    { const card = $(".mapcard"); if (card && v.contains(card)) { $("#top").insertBefore(card, $("#top").firstChild); card.classList.remove("inline"); } }
     v.innerHTML = html;
     if (active && helpers(active).length) startMsgs(active);
     const log = $("#chat-log"); if (log) log.scrollTop = log.scrollHeight;
@@ -1616,14 +1627,126 @@ body::before { background: var(--green); }
       <h3 class="subhead">طلبات تروح لها</h3>
       <div class="list">${going.length ? going.map(cardHTML).join("") : `<p class="muted" style="margin:0;font-size:13.5px">لم تقبل طلبات بعد. اختر طلبًا من الخريطة أو من «الطلبات».</p>`}</div>`;
   }
+  // ---- live location between the person who asked and the helper ----
+  const liveRequest = (r) => !!r && r.timing !== "dated" && r.status !== "done" && helpers(r).length > 0 && (r.created_by === myId() || isHelper(r)) && !isMinor();
+  function startLive(r) {
+    if (S.live.for === r.id) return;
+    stopLive(); S.live = { for: r.id, unsub: null, others: [], fitted: false };
+    if (r.demo) { if (S.demoLive[r.id]) S.live.others = [S.demoLive[r.id]]; return; }
+    if (!S.db) return;
+    try {
+      S.live.unsub = S.db.collection("help_requests/" + r.id + "/live").onSnapshot((snap) => {
+        S.live.others = snap.docs.map(d => Object.assign({ uid: d.id }, d.data())).filter(q => q.uid !== myId() && typeof q.lat === "number");
+        liveChanged();
+      }, () => { /* not available */ });
+    } catch (e) { S.live.unsub = null; }
+  }
+  function stopLive() { if (S.live.unsub) { try { S.live.unsub(); } catch (e) { /* ignore */ } } S.live = { for: null, unsub: null, others: [], fitted: false }; }
+  function liveOffscreen() {
+    const u = map.upp, w = map.W * u, h = map.H * u, vx = map.cx - w / 2, vy = map.cy - h / 2;
+    return S.live.others.some(q => { const [x, y] = toXY(q.lat, q.lng); return x < vx + w * 0.08 || x > vx + w * 0.92 || y < vy + h * 0.08 || y > vy + h * 0.92; });
+  }
+  // keep both people in view; the simple (59+) view always follows them
+  function liveChanged() { placeMap(); map.renderDynamic(); updateLiveText(); if (S.live.others.length && (!S.live.fitted || simpleUI() || liveOffscreen())) fitLive(); }
+  function liveText() {
+    const r = allReq().find(x => x.id === S.live.for);
+    if (!r) return "";
+    const mine = r.created_by === myId(), other = S.live.others[0];
+    const otherName = mine ? ((helpers(r)[0] || {}).name || "المتطوع") : (r.display_name || "صاحب الطلب");
+    if (!other) return S.share ? `موقعك ظاهر لـ${otherName}. ننتظر موقعه.` : `لم يشارك ${otherName} موقعه بعد.`;
+    const from = S.share && S.share.pos ? S.share.pos : (mine ? { lat: r.lat, lng: r.lng } : S.me);
+    return `${other.name || otherName} يبعد ${kmText(distKm(from, other))} · ${ago(other.at || Date.now())}`;
+  }
+  function updateLiveText() { const t = liveText(); ["#live-text", "#live-text-s"].forEach(sel => { const el = $(sel); if (el) el.textContent = t; }); }
+  function fitLive() {
+    const r = allReq().find(x => x.id === S.live.for);
+    if (!r || typeof r.lat !== "number") return;
+    const pts = [[r.lat, r.lng]].concat(S.live.others.map(q => [q.lat, q.lng]));
+    if (S.share && S.share.pos) pts.push([S.share.pos.lat, S.share.pos.lng]);
+    const xy = pts.map(q => toXY(q[0], q[1])), xs = xy.map(q => q[0]), ys = xy.map(q => q[1]);
+    const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+    map.measure();
+    const upp = Math.max(0.9 / Math.min(map.W, map.H), w / map.W * 1.6, h / map.H * 1.6);
+    map.go((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2, upp, false);
+    S.live.fitted = xy.length > 1;
+  }
+  function startShare(id) {
+    if (!navigator.geolocation) { toast("جهازك لا يدعم مشاركة الموقع.", true); return; }
+    stopShare(true, true);
+    const sh = S.share = { id, watch: null, pos: null, sentAt: 0, sentPos: null, started: Date.now(), timer: null, beat: null };
+    const send = () => {
+      sh.timer = null;
+      if (S.share !== sh || !sh.pos) return;
+      if (Date.now() - sh.started > 3 * 3600e3) { stopShare(); return; }
+      sh.sentAt = Date.now(); sh.sentPos = sh.pos;
+      if (S.db && !isDemo(id)) S.db.doc("help_requests/" + id + "/live/" + myId()).set(Object.assign({}, sh.pos, { at: Date.now() })).catch(() => { /* next update retries */ });
+    };
+    sh.beat = setInterval(() => { if (sh.pos && Date.now() - sh.sentAt >= 25000) send(); }, 30000); // still here, even when not moving
+    sh.watch = navigator.geolocation.watchPosition((pos) => {
+      if (S.share !== sh) return;
+      const now = Date.now(), q = { lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6), acc: Math.round(pos.coords.accuracy || 0), at: now, name: (S.me && S.me.display_name) || "" };
+      const first = !sh.pos;
+      sh.pos = q; map.renderDynamic(); updateLiveText();
+      if (first) { S.live.fitted = false; fitLive(); }
+      const moved = !sh.sentPos || distKm(sh.sentPos, q) > 0.02;
+      if (!moved && sh.sentAt) return;
+      // at most one update every 5 seconds; the latest position is always sent in the end
+      const wait = sh.sentAt ? 5000 - (now - sh.sentAt) : 0;
+      if (wait <= 0) send(); else if (!sh.timer) sh.timer = setTimeout(send, wait);
+    }, (err) => {
+      if (S.share !== sh) return;
+      // a refused permission ends the sharing; a weak signal just waits for the next position
+      if (err && err.code === 1) { toast("اسمح للمتصفح بمعرفة موقعك لتشاركه.", true); stopShare(true); }
+      else if (!sh.pos) toast("نحاول تحديد موقعك... تأكد أن خدمات الموقع مفعّلة.", true);
+    }, { enableHighAccuracy: true, maximumAge: 5000 });
+    toast("يظهر موقعك الآن للطرف الثاني على الخريطة.");
+    S.simpleKey = ""; renderAll();
+  }
+  function stopShare(quiet, noRender) {
+    const sh = S.share;
+    if (!sh) return;
+    S.share = null;
+    clearTimeout(sh.timer); clearInterval(sh.beat);
+    try { navigator.geolocation.clearWatch(sh.watch); } catch (e) { /* ignore */ }
+    if (S.db && !isDemo(sh.id)) S.db.doc("help_requests/" + sh.id + "/live/" + myId()).delete().catch(() => { /* ignore */ });
+    if (!quiet) toast("أوقفت مشاركة موقعك.");
+    if (!noRender) { S.simpleKey = ""; renderAll(); }
+  }
+  function syncLive() {
+    let r = null;
+    if (simpleUI()) r = simpleActive();
+    else if ((S.me ? S.tab : "") === "detail") r = allReq().find(x => x.id === S.selectedId);
+    if (liveRequest(r)) startLive(r); else if (S.live.for) stopLive();
+    if (S.share) { const sr = allReq().find(x => x.id === S.share.id); if (!liveRequest(sr)) stopShare(true, true); }
+  }
+  function placeMap() {
+    const card = $(".mapcard"), main = $("#top");
+    let slot = null;
+    if (regInline()) slot = $("#reg-map-slot");
+    else if (simpleUI() && S.live.for && (S.live.others.length || (S.share && S.share.pos))) slot = $("#live-map-slot");
+    if (slot) {
+      if (card.parentNode !== slot) {
+        slot.appendChild(card); card.classList.add("inline");
+        const reg = slot.id === "reg-map-slot";
+        requestAnimationFrame(() => { map.measure(); if (!reg) { S.live.fitted = false; fitLive(); } else if (S.regLoc) map.focus(S.regLoc.lat, S.regLoc.lng, 3, false); else map.fitAll(false); });
+      }
+      card.hidden = false;
+      return;
+    }
+    if (card.parentNode !== main) { main.insertBefore(card, main.firstChild); card.classList.remove("inline"); requestAnimationFrame(() => map.measure()); }
+    const t = S.me ? S.tab : "account", sel = t === "detail" ? allReq().find(x => x.id === S.selectedId) : null;
+    card.hidden = !(S.pick || (!simpleUI() && !isElderly() && (t === "map" || (t === "detail" && (S.detailBack === "map" || liveRequest(sel))))));
+  }
+
   function renderAll() {
     renderTabs();
-    if (simpleUI()) { renderSimple(); renderAccount(); return; }
+    if (simpleUI()) { renderSimple(); renderAccount(); syncLive(); placeMap(); map.renderDynamic(); updateLiveText(); return; }
     S.simpleKey = "";
     renderChips();
     if (!isElderly()) { renderList(); renderHome(); renderSections(); renderMapView(); if (S.tab === "detail") renderDetail(); renderNewForm(); }
     renderAccount(); renderOverlay();
-    map.renderDynamic();
+    syncLive(); placeMap();
+    map.renderDynamic(); updateLiveText();
   }
 
   // ================= actions =================
@@ -1857,6 +1980,17 @@ body::before { background: var(--green); }
       if (r.timing !== "dated") r.status = "accepted";
       S.demoMsgs[r.id] = [{ uid: "demo-vol", name, text: r.request_type === "need" ? "السلام عليكم، قبلت طلبك وسأتواصل معك هنا." : "السلام عليكم، أحتاج هذه المساعدة إن أمكن.", at: Date.now() }];
       toast(r.request_type === "need" ? `قبل ${name} (مثال) طلبك. تستطيع الآن التواصل معه.` : `طلب ${name} (مثال) مساعدتك.`);
+      if (r.timing !== "dated" && typeof r.lat === "number") {
+        const ang = 210 * Math.PI / 180, km = 2.4, a0 = { lat: r.lat + km * Math.cos(ang) / 111.32, lng: r.lng + km * Math.sin(ang) / (111.32 * Math.cos(r.lat * Math.PI / 180)) };
+        let k = 0;
+        const drive = setInterval(() => {
+          const rr = S.demoReqs.find(x => x.id === r.id);
+          if (!rr || rr.status === "done" || k > 45) { clearInterval(drive); delete S.demoLive[r.id]; return; }
+          const f = Math.min(1, k / 40); k += 1;
+          S.demoLive[r.id] = { uid: "demo-vol", name, lat: a0.lat + (r.lat - a0.lat) * f, lng: a0.lng + (r.lng - a0.lng) * f, at: Date.now() };
+          if (S.live.for === r.id) { S.live.others = [S.demoLive[r.id]]; liveChanged(); }
+        }, 1500);
+      }
       if (S.selectedId === r.id) startMsgs(r);
       S.simpleKey = ""; renderAll();
     }, 6000);
@@ -1987,6 +2121,8 @@ body::before { background: var(--green); }
         else { S.prevTab = S.tab === "account" ? "home" : S.tab; S.editing = false; setTab("account"); }
         window.scrollTo(0, 0); break;
       case "rate-owner": rateOwner(id, +el.dataset.v); break;
+      case "share-start": startShare(id); break;
+      case "share-stop": stopShare(); break;
       case "zoom-in": { const t = map.target || map; map.go(t.cx, t.cy, t.upp / 1.8); break; }
       case "zoom-out": { const t = map.target || map; map.go(t.cx, t.cy, t.upp * 1.8); break; }
       case "map-mode": map.setSat(!map.satOn, true); break;
