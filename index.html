@@ -1390,14 +1390,11 @@ body::before { background: var(--green); }
       const cur = typeof r.rating === "number" ? r.rating : 0;
       rating = `<div class="box"><div class="box-title">${cur ? (isNeed ? "تقييمك للمساعدة" : "تقييمك للمستفيد") : (isNeed ? "قيّم المساعدة" : "قيّم المستفيد")}</div><div class="stars" role="group" aria-label="التقييم">${[1, 2, 3, 4, 5].map(n => `<button type="button" class="${n <= cur ? "on" : ""}" data-action="rate" data-id="${esc(r.id)}" data-v="${n}" aria-label="${n} من ٥">${icon("star")}</button>`).join("")}</div></div>`;
     }
-    if (mine && r.status === "done" && hs.some(h => typeof h.rate === "number")) {
-      rating += `<div class="box"><div class="box-title">تقييمهم لك</div>${hs.filter(h => typeof h.rate === "number").map(h => `<div class="rate-row"><span>${esc(h.name || "مستخدم")}</span>${starsRO(h.rate)}</div>`).join("")}</div>`;
-    }
     if (amHelper && r.status === "done") {
       const myRate = (hs.find(h => h.uid === myId()) || {}).rate || 0;
       rating += `<div class="box"><div class="box-title">${myRate ? "تقييمك لـ" : "قيّم "}${esc(r.display_name || "صاحب الطلب")}</div>
         <div class="stars" role="group" aria-label="التقييم">${[1, 2, 3, 4, 5].map(n => `<button type="button" class="${n <= myRate ? "on" : ""}" data-action="rate-owner" data-id="${esc(r.id)}" data-v="${n}" aria-label="${n} من ٥">${icon("star")}</button>`).join("")}</div>
-        ${typeof r.rating === "number" ? `<div class="rate-row"><span>تقييم ${esc(r.display_name || "صاحب الطلب")} لك</span>${starsRO(r.rating)}</div>` : `<p class="muted" style="margin:0;font-size:13px">لم يقيّمك ${esc(r.display_name || "صاحب الطلب")} بعد.</p>`}</div>`;
+        </div>`;
     }
     const sharing = S.share && S.share.id === r.id;
     const liveBox = liveRequest(r) ? `<div class="box live-box"><div class="box-title">${icon("locate")}الموقع المباشر</div>
@@ -1496,7 +1493,7 @@ body::before { background: var(--green); }
       const head = `<div class="profile"><span class="big-av">${esc((S.me.display_name || "؟").charAt(0))}</span><div><b>${esc(S.me.full_name)}</b><div class="muted" style="font-size:.88em">${esc([wilLabel(S.me.wilayat), ageTxt].filter(Boolean).join(" · "))}</div>${S.me.phone ? `<div class="muted" style="font-size:.88em"><span dir="ltr">${esc(phoneText(S.me.phone))}</span></div>` : ""}</div></div>`
         + (S.me.phone ? "" : `<p class="note">أضف رقم هاتفك من «تعديل بياناتي».</p>`);
       if (isElderly()) {
-        prof.innerHTML = `<button type="button" class="btn-link" data-action="tab" data-tab="list" style="align-self:flex-start">${icon("back")}رجوع</button>${head}
+        prof.innerHTML = `<button type="button" class="btn-link" data-action="tab" data-tab="list" style="align-self:flex-start">${icon("back")}رجوع</button>${head}${(() => { const st = myStats(); return `<div class="stats" style="grid-template-columns:minmax(0,1fr)"><div class="stat"><b>${st.avgOwner == null ? "—" : nf1.format(st.avgOwner)}</b><span>تقييمك من ٥</span></div></div>`; })()}
           ${canDb() ? "" : `<p class="note">تجربة: حسابك محفوظ على هذا الجهاز فقط.</p>`}
           <div class="row"><button type="button" class="btn btn-ghost" data-action="edit-profile">تعديل بياناتي</button>${delCtl}</div>`;
         return;
