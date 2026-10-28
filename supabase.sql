@@ -395,6 +395,398 @@ revoke all on function public.sanad_admin_data(text, text), public.sanad_admin_d
 grant execute on function public.sanad_admin_data(text, text), public.sanad_admin_delete_request(text, text, text),
   public.sanad_admin_dismiss(text, text, text, bigint) to anon, authenticated;
 
+-- ===== الإشعارات =====
+-- كل حدث يهمّك يُحفظ هنا لك وحدك: أحد قبل طلبك أو انسحب، رسالة جديدة، طلب جديد قريب منك،
+-- انتهى الطلب أو أُلغي، أو بدأ أحد يشارك موقعه معك. التقييمات لا تُرسل كإشعارات.
+-- إذا فعّل الشخص الإشعارات في جواله، ترسلها قاعدة البيانات للدالة sanad-push (Edge Functions).
+do $$ begin
+  create extension if not exists pg_net with schema extensions;
+exception when others then
+  raise notice 'pg_net: %', sqlerrm;
+end $$;
+
+create sequence if not exists public.sanad_notifs_seq;
+create table if not exists public.sanad_notifs (
+  id         bigint generated always as identity primary key,
+  seq        bigint not null default nextval('public.sanad_notifs_seq'),
+  uid        text not null,
+  kind       text not null,
+  req        text,
+  actor      text,
+  title      text not null,
+  body       text not null default '',
+  created_at timestamptz not null default clock_timestamp(),
+  read_at    timestamptz
+);
+create index if not exists sanad_notifs_uid_seq on public.sanad_notifs (uid, seq);
+create index if not exists sanad_notifs_created on public.sanad_notifs (created_at);
+alter table public.sanad_notifs enable row level security;
+revoke all on public.sanad_notifs from public, anon, authenticated;
+revoke all on sequence public.sanad_notifs_seq from public, anon, authenticated;
+
+-- أجهزة فعّلت الإشعارات (Web Push)
+create table if not exists public.sanad_push_subs (
+  endpoint   text primary key,
+  uid        text not null,
+  p256dh     text not null,
+  auth       text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists sanad_push_subs_uid on public.sanad_push_subs (uid);
+alter table public.sanad_push_subs enable row level security;
+revoke all on public.sanad_push_subs from public, anon, authenticated;
+
+create table if not exists public.sanad_push_log (
+  req_id     bigint primary key,
+  created_at timestamptz not null default now()
+);
+alter table public.sanad_push_log enable row level security;
+revoke all on public.sanad_push_log from public, anon, authenticated;
+
+-- عنوان دالة الإرسال في مشروعك، والمفتاح العام (نفس الموجود في config.js)
+create or replace function public.sanad_push_url() returns text
+language sql immutable set search_path = '' as $$
+  select 'https://bdbiznxphhxbidnasavc.supabase.co/functions/v1/sanad-push'
+$$;
+create or replace function public.sanad_push_apikey() returns text
+language sql immutable set search_path = '' as $$
+  select 'sb_publishable_XxCjHNbXvVnG6BogY60NHg_sOGxTCki'
+$$;
+
+create or replace function public.sanad_notif_row(n public.sanad_notifs) returns jsonb
+language sql immutable set search_path = '' as $$
+  select jsonb_build_object('id', n.id, 'seq', n.seq, 'kind', n.kind, 'req', n.req, 'title', n.title, 'body', n.body,
+                            'at', floor(extract(epoch from n.created_at) * 1000)::bigint, 'read', n.read_at is not null)
+$$;
+
+-- يحذف من القائمة أجهزة ألغت الإشعارات (حسب رد دالة الإرسال)
+create or replace function public.sanad_push_gc() returns void
+language plpgsql volatile security definer set search_path = '' as $$
+declare r record; n int;
+begin
+  for r in select l.req_id, h.status_code, h.content
+           from public.sanad_push_log l join net._http_response h on h.id = l.req_id loop
+    if r.status_code = 200 and r.content is not null then
+      begin
+        with gone as (select jsonb_array_elements_text(r.content::jsonb -> 'gone') as ep)
+        , removed as (delete from public.sanad_push_subs s using gone g where s.endpoint = g.ep returning 1)
+        select count(*) into n from removed;
+      exception when others then null;
+      end;
+    end if;
+  end loop;
+  with old as (delete from public.sanad_push_log l
+               where l.created_at < now() - interval '1 day'
+                  or exists (select 1 from net._http_response h where h.id = l.req_id)
+               returning 1)
+  select count(*) into n from old;
+exception when others then null;
+end $$;
+
+create or replace function public.sanad_push(p_ids bigint[]) returns void
+language plpgsql volatile security definer set search_path = '' as $$
+declare msgs jsonb; rid bigint;
+begin
+  select jsonb_agg(jsonb_build_object(
+           'sub', jsonb_build_object('endpoint', s.endpoint, 'keys', jsonb_build_object('p256dh', s.p256dh, 'auth', s.auth)),
+           'payload', jsonb_build_object(
+             'title', n.title, 'body', n.body, 'kind', n.kind,
+             'tag', n.kind || ':' || coalesce(n.req, n.id::text),
+             'url', case when n.req is not null then './?open=' || n.req else './?notifs=1' end,
+             'badge', (select count(*) from public.sanad_notifs u where u.uid = n.uid and u.read_at is null))))
+    into msgs
+  from public.sanad_notifs n join public.sanad_push_subs s on s.uid = n.uid
+  where n.id = any(p_ids);
+  if msgs is null then return; end if;
+  perform public.sanad_push_gc();
+  begin
+    rid := net.http_post(
+      url := public.sanad_push_url(),
+      body := jsonb_build_object('messages', msgs),
+      headers := jsonb_build_object('Content-Type', 'application/json', 'apikey', public.sanad_push_apikey()),
+      timeout_milliseconds := 10000);
+    insert into public.sanad_push_log (req_id) values (rid) on conflict do nothing;
+  exception when others then
+    raise warning 'sanad push: %', sqlerrm;
+  end;
+end $$;
+
+-- يحفظ الإشعارات ويرسلها. رسائل المحادثة على نفس الطلب تُجمع في إشعار واحد حتى تقرأه.
+create or replace function public.sanad_emit(p_items jsonb) returns void
+language plpgsql volatile security definer set search_path = '' as $$
+declare it jsonb; nid bigint; ids bigint[] := '{}';
+begin
+  for it in select value from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) loop
+    continue when coalesce(it ->> 'uid', '') = '' or it ->> 'uid' = coalesce(it ->> 'actor', '');
+    nid := null;
+    if it ->> 'kind' = 'msg' then
+      update public.sanad_notifs
+      set title = left(it ->> 'title', 120), body = left(coalesce(it ->> 'body', ''), 200), actor = it ->> 'actor',
+          created_at = clock_timestamp(), seq = nextval('public.sanad_notifs_seq')
+      where id = (select n.id from public.sanad_notifs n
+                  where n.uid = it ->> 'uid' and n.kind = 'msg' and n.req is not distinct from it ->> 'req' and n.read_at is null
+                  order by n.seq desc limit 1)
+      returning id into nid;
+    end if;
+    if nid is null then
+      insert into public.sanad_notifs (uid, kind, req, actor, title, body)
+      values (it ->> 'uid', it ->> 'kind', it ->> 'req', it ->> 'actor', left(it ->> 'title', 120), left(coalesce(it ->> 'body', ''), 200))
+      returning id into nid;
+    end if;
+    ids := ids || nid;
+  end loop;
+  if cardinality(ids) = 0 then return; end if;
+  if random() < 0.02 then delete from public.sanad_notifs where created_at < now() - interval '60 days'; end if;
+  perform public.sanad_push(ids);
+end $$;
+
+create or replace function public.sanad_sec_label(s text) returns text
+language sql immutable set search_path = '' as $$
+  select case s when 'road' then 'على الطريق' when 'social' then 'الحياة الاجتماعية'
+                when 'occasion' then 'الأفراح والأتراح' when 'elderly' then 'كبار السن وذوو الاحتياجات' else 'سند' end
+$$;
+
+-- يقرر من يستحق إشعارًا عند كل تغيير. أي خطأ هنا لا يوقف حفظ البيانات.
+create or replace function public.sanad_on_doc() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare
+  k text := public.sanad_kind(new.path);
+  rid text := split_part(new.path, '/', 2);
+  alive_old boolean := tg_op = 'UPDATE' and not old.deleted;
+  alive_new boolean := not new.deleted;
+  r public.sanad_docs;
+  d jsonb; od jsonb;
+  oh jsonb; nh jsonb; h jsonb;
+  snippet text; who text; ttl text;
+  dated boolean; rlat float8; rlng float8;
+  items jsonb := '[]'::jsonb;
+begin
+  if k = 'request' then
+    d := case when alive_new then new.data else old.data end;
+    snippet := public.sanad_sec_label(d ->> 'section') || ': ' || left(coalesce(d ->> 'details', ''), 90);
+    who := coalesce(nullif(d ->> 'display_name', ''), 'صاحب الطلب');
+    nh := case when jsonb_typeof(new.data -> 'helpers') = 'array' then new.data -> 'helpers' else '[]'::jsonb end;
+    oh := case when tg_op = 'UPDATE' and jsonb_typeof(old.data -> 'helpers') = 'array' then old.data -> 'helpers' else '[]'::jsonb end;
+
+    if alive_new and not alive_old and coalesce(d ->> 'status', 'open') <> 'done' then
+      -- طلب جديد: لمن حوله (١٠ كم)، أو لأهل الولاية إذا كان له موعد
+      dated := d ->> 'timing' = 'dated';
+      rlat := case when jsonb_typeof(d -> 'lat') = 'number' then (d ->> 'lat')::float8 end;
+      rlng := case when jsonb_typeof(d -> 'lng') = 'number' then (d ->> 'lng')::float8 end;
+      ttl := case when dated then 'مبادرة جديدة في ولايتك'
+                  when d ->> 'request_type' = 'offer' then 'عرض مساعدة قريب منك'
+                  else 'طلب مساعدة قريب منك' end;
+      select coalesce(jsonb_agg(jsonb_build_object('uid', p.owner, 'kind', 'near', 'req', rid, 'actor', new.owner,
+                                                   'title', ttl, 'body', snippet)), '[]'::jsonb)
+        into items
+      from (
+        select x.owner, x.km from (
+          select u.owner,
+                 case when dated then 0
+                      when jsonb_typeof(u.data -> 'lat') = 'number' and jsonb_typeof(u.data -> 'lng') = 'number' and rlat is not null and rlng is not null
+                      then 2 * 6371 * asin(least(1, sqrt(
+                             power(sin(radians((u.data ->> 'lat')::float8 - rlat) / 2), 2)
+                             + cos(radians(rlat)) * cos(radians((u.data ->> 'lat')::float8))
+                               * power(sin(radians((u.data ->> 'lng')::float8 - rlng) / 2), 2))))
+                 end as km
+          from public.sanad_docs u
+          where u.coll like 'data/users/%' and u.path like '%/profile' and not u.deleted and u.owner <> new.owner
+            and u.data -> 'notify_near' is distinct from 'false'::jsonb
+            and coalesce(u.data ->> 'age_group', '') <> '59+'
+            and (coalesce(u.data ->> 'age_group', '') <> 'u18' or dated)
+            and (d -> 'prefer_female' is distinct from 'true'::jsonb or u.data ->> 'gender' = 'female')
+            and (not dated or u.data ->> 'wilayat' = d ->> 'wilayat')
+        ) x
+        where x.km is not null and x.km <= 10
+        order by x.km limit 300
+      ) p;
+
+    elsif alive_old and alive_new then
+      -- من انضم
+      for h in select value from jsonb_array_elements(nh) loop
+        if not oh @> jsonb_build_array(jsonb_build_object('uid', h ->> 'uid')) then
+          items := items || jsonb_build_object('uid', new.owner, 'kind', 'join', 'req', rid, 'actor', h ->> 'uid',
+            'title', coalesce(nullif(h ->> 'name', ''), 'متطوع') || case when d ->> 'request_type' = 'offer' then ' انضم إلى عرضك' else ' قبل طلبك' end,
+            'body', snippet);
+        end if;
+      end loop;
+      -- من انسحب
+      if coalesce(d ->> 'status', '') <> 'done' then
+        for h in select value from jsonb_array_elements(oh) loop
+          if not nh @> jsonb_build_array(jsonb_build_object('uid', h ->> 'uid')) then
+            items := items || jsonb_build_object('uid', new.owner, 'kind', 'leave', 'req', rid, 'actor', h ->> 'uid',
+              'title', coalesce(nullif(h ->> 'name', ''), 'متطوع') || ' انسحب من طلبك', 'body', snippet);
+          end if;
+        end loop;
+      end if;
+      -- انتهت المساعدة
+      if coalesce(old.data ->> 'status', '') <> 'done' and new.data ->> 'status' = 'done' then
+        for h in select value from jsonb_array_elements(nh) loop
+          items := items || jsonb_build_object('uid', h ->> 'uid', 'kind', 'done', 'req', rid, 'actor', new.owner,
+            'title', case when d ->> 'request_type' = 'offer' then 'تمت المساعدة' else 'تمت المساعدة، شكرًا لك' end,
+            'body', 'أغلق ' || who || ' الطلب، وتقدر تقيّم تجربتك الآن.');
+        end loop;
+      end if;
+
+    elsif alive_old and not alive_new and coalesce(old.data ->> 'status', '') <> 'done' then
+      -- أُلغي الطلب
+      for h in select value from jsonb_array_elements(oh) loop
+        items := items || jsonb_build_object('uid', h ->> 'uid', 'kind', 'cancel', 'req', rid, 'actor', old.owner,
+          'title', 'أُلغي طلب ' || who, 'body', snippet);
+      end loop;
+    end if;
+
+  elsif k in ('message', 'live') and alive_new and not alive_old then
+    select * into r from public.sanad_docs where path = 'help_requests/' || rid and not deleted;
+    if found then
+      od := case when jsonb_typeof(r.data -> 'helpers') = 'array' then r.data -> 'helpers' else '[]'::jsonb end;
+      ttl := coalesce(nullif(new.data ->> 'name', ''), 'مستخدم');
+      for who in select r.owner union select e ->> 'uid' from jsonb_array_elements(od) e loop
+        continue when who is null or who = new.owner;
+        if k = 'message' then
+          items := items || jsonb_build_object('uid', who, 'kind', 'msg', 'req', rid, 'actor', new.owner,
+            'title', 'رسالة من ' || ttl, 'body', left(coalesce(new.data ->> 'text', ''), 140));
+        else
+          items := items || jsonb_build_object('uid', who, 'kind', 'live', 'req', rid, 'actor', new.owner,
+            'title', ttl || ' يشارك موقعه المباشر معك', 'body', 'افتح الطلب وشوف وين وصل.');
+        end if;
+      end loop;
+    end if;
+  end if;
+
+  if jsonb_array_length(items) > 0 then perform public.sanad_emit(items); end if;
+  return null;
+exception when others then
+  raise warning 'sanad notify: %', sqlerrm;
+  return null;
+end $$;
+create or replace trigger sanad_notify after insert or update on public.sanad_docs
+  for each row execute function public.sanad_on_doc();
+
+-- ما يستدعيه الموقع
+create or replace function public.sanad_notifs(p_key text, p_after bigint default 0) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare me text := public.sanad_uid(p_key); items jsonb; unread int; mx bigint;
+begin
+  if me is null then raise exception 'sanad:bad_key'; end if;
+  if coalesce(p_after, 0) <= 0 then
+    select coalesce(jsonb_agg(public.sanad_notif_row(n) order by n.seq desc), '[]'::jsonb) into items
+    from (select * from public.sanad_notifs where uid = me order by seq desc limit 60) n;
+  else
+    select coalesce(jsonb_agg(public.sanad_notif_row(n) order by n.seq), '[]'::jsonb) into items
+    from (select * from public.sanad_notifs where uid = me and seq > p_after order by seq limit 100) n;
+  end if;
+  select count(*) filter (where read_at is null), coalesce(max(seq), 0) into unread, mx from public.sanad_notifs where uid = me;
+  return jsonb_build_object('items', items, 'unread', unread, 'seq', mx);
+end $$;
+
+create or replace function public.sanad_notifs_read(p_key text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare me text := public.sanad_uid(p_key);
+begin
+  if me is null then raise exception 'sanad:bad_key'; end if;
+  update public.sanad_notifs set read_at = now() where uid = me and read_at is null;
+  return jsonb_build_object('unread', 0);
+end $$;
+
+create or replace function public.sanad_push_save(p_key text, p_sub jsonb) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  me text := public.sanad_uid(p_key);
+  ep text := p_sub ->> 'endpoint';
+  pk text := p_sub #>> '{keys,p256dh}';
+  au text := p_sub #>> '{keys,auth}';
+  n int;
+begin
+  if me is null then raise exception 'sanad:bad_key'; end if;
+  if ep is null or ep !~ '^https://[A-Za-z0-9.-]+(:[0-9]+)?/' or length(ep) > 1000
+     or coalesce(pk, '') !~ '^[A-Za-z0-9_=+/-]{80,100}$' or coalesce(au, '') !~ '^[A-Za-z0-9_=+/-]{16,32}$' then
+    raise exception 'sanad:bad_data';
+  end if;
+  insert into public.sanad_push_subs (endpoint, uid, p256dh, auth) values (ep, me, pk, au)
+  on conflict (endpoint) do update set uid = excluded.uid, p256dh = excluded.p256dh, auth = excluded.auth, updated_at = now();
+  -- خمسة أجهزة لكل شخص على الأكثر
+  with extra as (delete from public.sanad_push_subs x
+                 where x.uid = me and x.endpoint not in (select s.endpoint from public.sanad_push_subs s where s.uid = me order by s.updated_at desc limit 5)
+                 returning 1)
+  select count(*) into n from extra;
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.sanad_push_remove(p_key text, p_endpoint text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare me text := public.sanad_uid(p_key); n int;
+begin
+  if me is null then raise exception 'sanad:bad_key'; end if;
+  with gone as (delete from public.sanad_push_subs x where x.uid = me and x.endpoint = p_endpoint returning 1)
+  select count(*) into n from gone;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- ===== نقل الحساب لجهاز ثاني =====
+-- التطبيق المثبّت على الشاشة الرئيسية في الآيفون والآيباد لا يرى بيانات المتصفح،
+-- فينقل الشخص حسابه برمز من ٨ خانات صالح لنصف ساعة ولمرة واحدة.
+create table if not exists public.sanad_transfers (
+  code       text primary key,
+  dev_key    text not null,
+  uid        text not null,
+  expires_at timestamptz not null
+);
+alter table public.sanad_transfers enable row level security;
+revoke all on public.sanad_transfers from public, anon, authenticated;
+create table if not exists public.sanad_transfer_fails (at timestamptz not null default now());
+create index if not exists sanad_transfer_fails_at on public.sanad_transfer_fails (at);
+alter table public.sanad_transfer_fails enable row level security;
+revoke all on public.sanad_transfer_fails from public, anon, authenticated;
+
+create or replace function public.sanad_transfer_create(p_key text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  me text := public.sanad_uid(p_key);
+  alpha text := '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+  c text; b bytea; i int; n int;
+begin
+  if me is null then raise exception 'sanad:bad_key'; end if;
+  with old as (delete from public.sanad_transfers x where x.expires_at < now() or x.uid = me returning 1)
+  select count(*) into n from old;
+  loop
+    b := extensions.gen_random_bytes(8); c := '';
+    for i in 0..7 loop c := c || substr(alpha, 1 + (get_byte(b, i) % 31), 1); end loop;
+    exit when not exists (select 1 from public.sanad_transfers t where t.code = c);
+  end loop;
+  insert into public.sanad_transfers (code, dev_key, uid, expires_at) values (c, p_key, me, now() + interval '30 minutes');
+  return jsonb_build_object('code', c, 'expires', floor(extract(epoch from now() + interval '30 minutes') * 1000)::bigint);
+end $$;
+
+create or replace function public.sanad_transfer_claim(p_code text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  c text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
+  k text; n int;
+begin
+  if (select count(*) from public.sanad_transfer_fails f where f.at > now() - interval '10 minutes') >= 300 then
+    return jsonb_build_object('ok', false, 'error', 'busy');
+  end if;
+  with used as (delete from public.sanad_transfers x where x.code = c and x.expires_at > now() returning x.dev_key)
+  select max(dev_key) into k from used;
+  if k is null then
+    insert into public.sanad_transfer_fails default values;
+    with old as (delete from public.sanad_transfer_fails f where f.at < now() - interval '1 hour' returning 1)
+    select count(*) into n from old;
+    return jsonb_build_object('ok', false, 'error', 'bad_code');
+  end if;
+  return jsonb_build_object('ok', true, 'key', k);
+end $$;
+
+revoke all on function public.sanad_push_url(), public.sanad_push_apikey(), public.sanad_notif_row(public.sanad_notifs),
+  public.sanad_push_gc(), public.sanad_push(bigint[]), public.sanad_emit(jsonb), public.sanad_sec_label(text),
+  public.sanad_on_doc() from public, anon, authenticated;
+revoke all on function public.sanad_notifs(text, bigint), public.sanad_notifs_read(text), public.sanad_push_save(text, jsonb),
+  public.sanad_push_remove(text, text), public.sanad_transfer_create(text), public.sanad_transfer_claim(text) from public;
+grant execute on function public.sanad_notifs(text, bigint), public.sanad_notifs_read(text), public.sanad_push_save(text, jsonb),
+  public.sanad_push_remove(text, text), public.sanad_transfer_create(text), public.sanad_transfer_claim(text) to anon, authenticated;
+
 notify pgrst, 'reload schema';
 
 select 'تم تجهيز قاعدة بيانات سند ✓' as "النتيجة";
