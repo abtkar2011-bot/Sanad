@@ -285,6 +285,22 @@
     };
   }
   var db = Object.freeze({ doc: docRef, collection: function (p) { return query(p); } });
+
+  // ---------- notifications, phone alerts, moving an account to another device ----------
+  window.SANAD_API = Object.freeze({
+    pushKey: String(cfg.pushKey || "").trim(),
+    notifs: function (after) { return ready.then(function () { return rpc("sanad_notifs", { p_key: KEY, p_after: after || 0 }); }); },
+    notifsRead: function () { return rpc("sanad_notifs_read", { p_key: KEY }); },
+    pushSave: function (sub) { return rpc("sanad_push_save", { p_key: KEY, p_sub: sub }); },
+    pushRemove: function (endpoint) { return rpc("sanad_push_remove", { p_key: KEY, p_endpoint: String(endpoint || "") }); },
+    transferCreate: function () { return rpc("sanad_transfer_create", { p_key: KEY }); },
+    transferClaim: function (code) { return rpc("sanad_transfer_claim", { p_code: String(code || "") }); },
+    useKey: function (k) {
+      if (!/^[0-9a-f]{64}$/.test(String(k || ""))) return false;
+      store(DEVICE, k); store(PROFILE_CACHE, null);
+      return true;
+    },
+  });
   var user = Object.freeze({
     id: async function () { return ready; },
     isOwner: async function () { return false; },

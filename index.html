@@ -365,6 +365,45 @@ body::before { background: var(--green); }
 .toast { position: fixed; z-index: 50; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); max-width: min(520px, calc(100% - 32px)); background: var(--ink); color: var(--surface); border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600; text-align: center; }
 .toast.err { background: var(--danger); color: #fff; }
 
+/* notifications, add-to-home-screen, moving an account */
+.bell-btn { margin-inline-start: auto; position: relative; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex: none; border: 1px solid rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .12); color: #fff; }
+.bell-btn:hover { background: rgba(255, 255, 255, .2); }
+.bell-btn .ico { width: 22px; height: 22px; }
+.bell-btn .badge { position: absolute; top: -6px; left: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #d4483b; color: #fff; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; box-shadow: 0 0 0 2px var(--green); }
+.nlist { display: flex; flex-direction: column; gap: 8px; }
+.nitem { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: right; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: inherit; }
+.nitem:hover { border-color: var(--green); }
+.nitem.unread { background: var(--green-soft); border-color: #cfe3d6; }
+.nitem .n-ico { width: 38px; height: 38px; border-radius: 12px; background: var(--green-soft); color: var(--green); display: grid; place-items: center; flex: none; }
+.nitem.unread .n-ico { background: var(--green); color: #fff; }
+.nitem .n-ico .ico { width: 20px; height: 20px; }
+.nitem b { display: block; font-size: 15px; line-height: 1.45; }
+.nitem small { color: var(--muted); font-size: 13.5px; line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.nitem em { display: block; font-style: normal; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.ncard { display: flex; align-items: center; gap: 12px; width: 100%; text-align: right; padding: 12px 14px; border-radius: 14px; border: 1px solid #cfe3d6; background: var(--green-soft); color: inherit; }
+.ncard .ico { width: 24px; height: 24px; color: var(--green); flex: none; }
+.ncard b { display: block; font-size: 15px; }
+.ncard small { display: block; color: var(--muted); font-size: 13px; }
+.promo { border: 1px dashed var(--line-2); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.promo .p-head { display: flex; gap: 10px; align-items: flex-start; }
+.promo .p-head .ico { width: 26px; height: 26px; color: var(--green); flex: none; margin-top: 2px; }
+.promo b { display: block; font-size: 15px; }
+.promo p { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); }
+.sheet { position: fixed; inset: 0; z-index: 60; background: rgba(10, 25, 18, .45); display: flex; align-items: flex-end; justify-content: center; padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 640px) { .sheet { align-items: center; } }
+.sheet-box { background: var(--surface); border-radius: 18px; width: 100%; max-width: 460px; max-height: calc(100vh - 32px); overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, .25); }
+.sheet-box h3 { margin: 0; font-size: 19px; }
+.steps-i { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps-i li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.6; }
+.steps-i .sn { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; margin-top: 1px; }
+.steps-i .ico { width: 19px; height: 19px; color: var(--green); vertical-align: -4px; }
+.code-box { font-family: ui-monospace, Menlo, Consolas, monospace; direction: ltr; text-align: center; font-size: 30px; font-weight: 700; letter-spacing: 4px; background: var(--green-soft); color: var(--green-ink); border-radius: 12px; padding: 10px; user-select: all; -webkit-user-select: all; }
+.xfer { display: flex; gap: 8px; }
+.xfer input { flex: 1; min-width: 0; direction: ltr; text-align: center; font-size: 20px; letter-spacing: 3px; text-transform: uppercase; border: 1px solid var(--line-2); border-radius: 10px; padding: 10px; }
+.xfer input:focus { border-color: var(--green); outline: none; box-shadow: 0 0 0 3px var(--green-soft); }
+.setting { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.setting > span { display: inline-flex; align-items: center; gap: 6px; }
+
 @media (max-width: 960px) {
   .main { grid-template-columns: minmax(0, 1fr); }
   .mapcard { position: relative; top: 0; }
@@ -404,6 +443,12 @@ body::before { background: var(--green); }
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12.2 2.8 2.8L16.2 9.4"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+    <symbol id="i-squareplus" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></symbol>
   </defs>
 </svg>
 
@@ -411,6 +456,7 @@ body::before { background: var(--green); }
   <div class="bar-in">
     <button class="menu-btn" type="button" data-action="menu" id="menu-btn" aria-label="حسابي" hidden><svg class="ico"><use href="#i-menu"/></svg></button>
     <a class="brand" href="#top" data-action="home"><b>سند</b><span>يدٌ تساعد، ومجتمعٌ أقوى</span></a>
+    <button class="bell-btn" type="button" data-action="notifs" id="bell-btn" aria-label="الإشعارات" hidden><svg class="ico"><use href="#i-bell"/></svg><span class="badge" id="bell-count" hidden></span></button>
     <button class="acct plain" type="button" data-action="tab" data-tab="account" id="acct-btn" hidden>سجّل</button>
   </div>
 </header>
@@ -457,6 +503,7 @@ body::before { background: var(--green); }
     <section class="view" id="v-home" hidden></section>
     <section class="view" id="v-sections" hidden></section>
     <section class="view" id="v-map" hidden></section>
+    <section class="view" id="v-notifs" hidden></section>
 
     <section class="view" id="v-list">
       <button type="button" class="btn-link back" data-action="go" data-to="sections" style="align-self:flex-start"><svg class="ico"><use href="#i-back"/></svg>الأقسام</button>
@@ -527,6 +574,7 @@ body::before { background: var(--green); }
       <form id="f-reg" novalidate>
         <div class="view-head"><h2 id="reg-title">سجّل في سند</h2></div>
         <p class="lead">يظهر للآخرين اسمك الأول فقط، ولا يظهر رقم هاتفك لأحد.</p>
+        <div id="r-transfer"></div>
         <div class="field"><label for="r-name">الاسم الثلاثي</label><input type="text" id="r-name" maxlength="60" autocomplete="name" placeholder="مثال: سالم سعيد الهنائي" required></div>
         <div class="field"><label for="r-phone">رقم الهاتف</label>
           <div class="phone"><span class="cc">+968</span><input type="tel" id="r-phone" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="9XXXXXXX" required></div>
@@ -565,6 +613,7 @@ body::before { background: var(--green); }
 <footer class="wrap foot">سند · نموذج أولي مجتمعي، مجاني بالكامل.</footer>
 <input type="file" id="voice-file" accept="audio/*" capture class="vh" tabindex="-1" aria-hidden="true">
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="sheet" id="sheet" hidden></div>
 
 <script src="config.js"></script>
 <script src="cloud.js"></script>
@@ -639,6 +688,15 @@ body::before { background: var(--green); }
   const WEB = window.SANAD_PLATFORM === "web";
   const CAN_REC = WEB && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && !!(window.AudioContext || window.webkitAudioContext);
   const CAN_GEO = WEB && !!navigator.geolocation;
+  // notifications + add to home screen (website only)
+  const API = WEB ? (window.SANAD_API || null) : null;
+  const PUSH_KEY = API ? API.pushKey : "";
+  const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const STANDALONE = (() => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } })();
+  const pushPossible = () => !!(API && PUSH_KEY && window.isSecureContext && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window);
+  const NICON = { join: "check", leave: "back", msg: "chat", done: "star", cancel: "x", near: "locate", live: "locate" };
+  function snooze(k, days) { try { localStorage.setItem("sanad.snooze." + k, String(Date.now() + days * 864e5)); } catch (e) { /* storage unavailable */ } }
+  function snoozed(k) { try { return +(localStorage.getItem("sanad.snooze." + k) || 0) > Date.now(); } catch (e) { return false; } }
 
   // ================= helpers =================
   const $ = (s, el = document) => el.querySelector(s);
@@ -972,6 +1030,9 @@ body::before { background: var(--green); }
     demo: false, demoReqs: [], demoMsgs: {}, demoReplied: {}, demoVoice: {}, voiceCache: {},
     voice: null, voiceFor: "new",
     simple: { step: "home", kind: null, text: "", confirmCancel: false, skipRate: {} }, simpleKey: "",
+    notifs: { items: [], unread: 0, seq: 0, loaded: false, available: false, timer: null, busy: false },
+    push: { state: "off", reg: null, busy: false }, installEvt: null, sheet: null,
+    xfer: { open: false, busy: false, msg: "", key: "" }, pendingOpen: null,
   };
   const myId = () => S.uid || "local-me";
   const allReq = () => S.demo ? S.demoReqs.concat(S.requests) : S.requests;
@@ -1272,11 +1333,12 @@ body::before { background: var(--green); }
 
     $("#menu-btn").hidden = !S.me; $("#acct-back").hidden = !S.me || simple;
     ["home", "sections", "map"].forEach(v => { $("#v-" + v).hidden = eld || t !== v; });
+    $("#v-notifs").hidden = t !== "notifs";
     $("#top").classList.toggle("is-simple", simple);
     $("#top").classList.toggle("is-elderly", eld);
     ["list", "new", "account"].forEach(t => $("#t-" + t).setAttribute("aria-selected", (S.tab === t || (t === "list" && S.tab === "detail")) ? "true" : "false"));
     if (eld) {
-      $("#v-simple").hidden = !simple || t === "account";
+      $("#v-simple").hidden = !simple || t === "account" || t === "notifs";
       $("#v-list").hidden = true; $("#v-detail").hidden = true; $("#v-new").hidden = true;
       $("#v-account").hidden = simple ? t !== "account" : false;
     } else {
@@ -1287,7 +1349,18 @@ body::before { background: var(--green); }
     const ab = $("#acct-btn");
     if (S.me) { ab.className = "acct"; ab.innerHTML = `<span class="av">${esc((S.me.display_name || "؟").charAt(0))}</span>حسابي`; }
     else { ab.className = "acct plain"; ab.textContent = "سجّل"; }
+    updateBell();
   }
+  function updateBell() {
+    const b = $("#bell-btn"), c = $("#bell-count");
+    if (!b) return;
+    const n = S.notifs.unread;
+    b.hidden = !(S.me && S.notifs.available);
+    c.hidden = !n; c.textContent = n > 99 ? "+٩٩" : nf.format(n);
+    b.setAttribute("aria-label", n ? "الإشعارات، " + countNotif(n) : "الإشعارات");
+    try { if (navigator.setAppBadge) { if (n) navigator.setAppBadge(n).catch(() => {}); else navigator.clearAppBadge().catch(() => {}); } } catch (e) { /* not supported */ }
+  }
+  const countNotif = (n) => n === 1 ? "إشعار جديد" : n === 2 ? "إشعاران جديدان" : n <= 10 ? nf.format(n) + " إشعارات جديدة" : nf.format(n) + " إشعارًا جديدًا";
   function statusPill(r) {
     const n = helpers(r).length;
     if (r.status === "done") return `<span class="pill done">تمت المساعدة</span>`;
@@ -1496,7 +1569,8 @@ body::before { background: var(--green); }
       if (isElderly()) {
         prof.innerHTML = `<button type="button" class="btn-link" data-action="tab" data-tab="list" style="align-self:flex-start">${icon("back")}رجوع</button>${head}${(() => { const st = myStats(); return `<div class="stats" style="grid-template-columns:minmax(0,1fr)"><div class="stat"><b>${st.avgOwner == null ? "—" : nf1.format(st.avgOwner)}</b><span>تقييمك من ٥</span></div></div>`; })()}
           ${canDb() ? "" : `<p class="note">تجربة: حسابك محفوظ على هذا الجهاز فقط.</p>`}
-          <div class="row"><button type="button" class="btn btn-ghost" data-action="edit-profile">تعديل بياناتي</button>${delCtl}</div>`;
+          <div class="row"><button type="button" class="btn btn-ghost" data-action="edit-profile">تعديل بياناتي</button>${delCtl}</div>
+          ${settingsHTML()}`;
         return;
       }
       const st = myStats(), mineList = allReq().filter(r => r.created_by === myId()), helping = allReq().filter(isHelper);
@@ -1515,12 +1589,14 @@ body::before { background: var(--green); }
         ${canDb() ? "" : `<p class="note">تجربة: حسابك محفوظ على هذا الجهاز فقط.</p>`}
         <div class="stats"><div class="stat"><b>${nf.format(st.helps)}</b><span>مساعدة منجزة</span></div><div class="stat"><b>${st.avg == null ? "—" : nf1.format(st.avg)}</b><span>تقييمك كمتطوع</span></div><div class="stat"><b>${st.avgOwner == null ? "—" : nf1.format(st.avgOwner)}</b><span>تقييمك كصاحب طلب</span></div></div>
         <div class="row"><button type="button" class="btn btn-ghost btn-sm" data-action="edit-profile">تعديل بياناتي</button>${delCtl}</div>
+        ${settingsHTML()}
         <h3 class="subhead">طلباتي</h3><div class="list">${mineList.length ? mineList.map(cardHTML).join("") : `<p class="muted" style="margin:0;font-size:13.5px">لم تنشر طلبات بعد.</p>`}</div>
         <h3 class="subhead">أشارك فيها</h3><div class="list">${helping.length ? helping.map(cardHTML).join("") : `<p class="muted" style="margin:0;font-size:13.5px">لم تشارك في طلبات بعد.</p>`}</div>
         ${reps}`;
       return;
     }
     prof.innerHTML = ""; form.hidden = false;
+    renderTransfer();
     $("#reg-title").textContent = S.editing ? "تعديل بياناتي" : "سجّل في سند";
     $("#r-cancel").hidden = !S.editing;
     $("#r-submit").textContent = S.editing ? "حفظ" : "إنشاء حسابي";
@@ -1549,7 +1625,7 @@ body::before { background: var(--green); }
     if (!isElderly()) { if (v.innerHTML) v.innerHTML = ""; S.simpleKey = ""; return; }
     const active = simpleActive(), toRate = active ? null : simpleToRate();
     const sv = S.voice && S.voice.for === "simple" ? S.voice.state : "";
-    const key = JSON.stringify([S.simple.step, S.simple.kind, sv, S.simple.confirmCancel, active && [active.id, active.status, helpers(active).length], toRate && toRate.id, playing && playing.id, S.me.display_name, !!S.share]);
+    const key = JSON.stringify([S.simple.step, S.simple.kind, sv, S.simple.confirmCancel, active && [active.id, active.status, helpers(active).length], toRate && toRate.id, playing && playing.id, S.me.display_name, !!S.share, simplePushBtn()]);
     if (key === S.simpleKey) return;
     S.simpleKey = key;
     let html = `<h2 class="s-hello">أهلًا يا ${esc(S.me.display_name || "")}</h2>`;
@@ -1564,7 +1640,7 @@ body::before { background: var(--green); }
       const k = active.simple_kind && SIMPLE_KINDS[active.simple_kind] ? SIMPLE_KINDS[active.simple_kind] : { ar: (SECTIONS[active.section] || SECTIONS.elderly).ar, icon: (SECTIONS[active.section] || SECTIONS.elderly).icon };
       const hs = helpers(active);
       html += `<div class="s-card"><div class="s-title">${icon(k.icon)}طلبك: ${esc(k.ar)}</div>
-        ${hs.length ? `<p class="s-state">${icon("check")}قبل ${esc(hs[0].name || "متطوع")} طلبك، ويتواصل معك هنا.</p>` : `<p class="s-state">${icon("clock")}ننتظر متطوعًا قريبًا منك...</p>`}
+        ${hs.length ? `<p class="s-state">${icon("check")}قبل ${esc(hs[0].name || "متطوع")} طلبك، ويتواصل معك هنا.</p>` : `<p class="s-state">${icon("clock")}ننتظر متطوعًا قريبًا منك...</p>${simplePushBtn()}`}
         ${active.has_voice ? `<div class="voice">${playBtn(active.id, "استمع لرسالتك", true)}</div>` : ""}
         ${active.demo ? '<p class="note">تجربة: هذا الطلب على جهازك فقط.</p>' : ""}
         ${hs.length && liveRequest(active) ? `<p class="s-live" id="live-text-s">${esc(S.live.for === active.id ? liveText() : "")}</p><div id="live-map-slot"></div>
@@ -1584,6 +1660,7 @@ body::before { background: var(--green); }
         <button type="button" class="s-btn" data-action="s-pick" data-kind="ride">${icon("car")}<span>أحتاج توصيلة</span></button>
         <button type="button" class="s-btn" data-action="s-pick" data-kind="supplies">${icon("pill")}<span>أحتاج دواء أو أغراض</span></button>
         <button type="button" class="s-btn" data-action="s-pick" data-kind="other">${icon("handheart")}<span>أحتاج مساعدة أخرى</span></button>
+        ${simplePushBtn()}
         ${S.demo && !canDb() ? '<p class="note">تجربة: طلباتك تبقى على جهازك فقط.</p>' : ""}`;
     }
     { const card = $(".mapcard"); if (card && v.contains(card)) { $("#top").insertBefore(card, $("#top").firstChild); card.classList.remove("inline"); } }
@@ -1603,12 +1680,14 @@ body::before { background: var(--green); }
     const going = allReq().filter(r => isHelper(r) && r.status !== "done"), toRate = ratePending(), c = $("#conn");
     $("#v-home").innerHTML = `<div class="hello-wrap"><h2 class="hello">أهلًا يا ${esc(S.me.display_name || "")}</h2><p class="muted">${esc(wilLabel(S.me.wilayat) || "")}</p></div>
       ${c.hidden ? "" : `<p class="${c.className}">${esc(c.textContent)}</p>`}
+      ${notifCard()}
       ${toRate.length ? `<div class="box"><div class="box-title">${icon("star")}قيّم من تعاملت معهم</div><div class="list">${toRate.map(cardHTML).join("")}</div></div>` : ""}
       <div class="tiles">
         <button type="button" class="tile primary" data-action="go" data-to="sections"><span class="t-ico">${icon("list")}</span><span><b>الطلبات</b><small>${near.length ? countReq(near.length) + " قريبة منك" : "لا توجد طلبات قريبة الآن"}</small></span></button>
         <button type="button" class="tile" data-action="go" data-to="new"><span class="t-ico">${icon("plus")}</span><span><b>طلب جديد</b><small>${isMinor() ? "للبالغين فقط" : "اطلب مساعدة أو اعرض مساعدتك"}</small></span></button>
         <button type="button" class="tile" data-action="go" data-to="map"><span class="t-ico">${icon("map")}</span><span><b>خريطة الطلبات</b><small>${going.length ? "عندك " + countReq(going.length) + " تروح لها" : "الطلبات القريبة منك على الخريطة"}</small></span></button>
       </div>
+      ${promoCard()}
       <button type="button" class="btn-text" data-action="demo-toggle" style="align-self:flex-start">${S.demo ? "إخفاء الأمثلة" : "عرض أمثلة للتجربة"}</button>`;
   }
   function renderSections() {
@@ -1740,18 +1819,20 @@ body::before { background: var(--green); }
 
   function renderAll() {
     renderTabs();
-    if (simpleUI()) { renderSimple(); renderAccount(); syncLive(); placeMap(); map.renderDynamic(); updateLiveText(); return; }
+    if (simpleUI()) { renderSimple(); renderAccount(); renderNotifs(); syncLive(); placeMap(); map.renderDynamic(); updateLiveText(); return; }
     S.simpleKey = "";
     renderChips();
     if (!isElderly()) { renderList(); renderHome(); renderSections(); renderMapView(); if (S.tab === "detail") renderDetail(); renderNewForm(); }
-    renderAccount(); renderOverlay();
+    renderAccount(); renderNotifs(); renderOverlay();
     syncLive(); placeMap();
     map.renderDynamic(); updateLiveText();
   }
 
   // ================= actions =================
   function setTab(t) {
+    if (S.tab === "notifs" && t !== "notifs") S.notifs.items.forEach(n => { n.read = true; });
     S.tab = t; S.confirmDelete = false; S.reportOpen = false;
+    if (t === "notifs") markNotifsRead();
     if (t !== "detail" && !isElderly()) stopMsgs();
     renderAll();
   }
@@ -1759,7 +1840,7 @@ body::before { background: var(--green); }
     return mutateRequest(id, (cur) => ({ helpers: helpers(cur).map(h => h.uid === myId() ? Object.assign({}, h, { rate: v }) : h) }), "شكرًا على تقييمك.");
   }
   function selectRequest(id, fromList) {
-    if (S.tab !== "detail") S.detailBack = S.tab === "home" || S.tab === "map" || S.tab === "account" ? S.tab : "list";
+    if (S.tab !== "detail") S.detailBack = ["home", "map", "account", "notifs"].includes(S.tab) ? S.tab : "list";
     S.selectedId = id; S.confirmDelete = false; S.reportOpen = false; S.tab = "detail";
     const r = allReq().find(x => x.id === id);
     startMsgs(r); renderAll();
@@ -1830,6 +1911,7 @@ body::before { background: var(--green); }
       governorate: WIL2GOV[wil] || "", wilayat: wil, lat: S.regLoc.lat, lng: S.regLoc.lng,
       registered_at: (S.me && S.me.registered_at) || Date.now(), updated_at: Date.now(),
     };
+    if (S.me && S.me.notify_near === false) profile.notify_near = false;
     $("#r-submit").disabled = true;
     try { await booting; } catch (e) { /* boot reports its own errors */ }
     let local = false;
@@ -1848,6 +1930,7 @@ body::before { background: var(--green); }
     if (isElderly()) toast(wasEditing ? "حُفظت بياناتك." : "أهلًا بك في سند. اطلب المساعدة بضغطة واحدة.");
     else toast(local ? "سُجّل حسابك على هذا الجهاز للتجربة." : (wasEditing ? "حُفظت بياناتك." : "تم إنشاء حسابك. تظهر لك الآن الطلبات القريبة منك."));
     S.tab = "home"; S.simpleKey = ""; renderAll();
+    if (!local && !wasEditing) { pollNotifs(true); syncPush().then(renderAll); }
     if (!isElderly()) map.focus(profile.lat, profile.lng, 28);
     const top = $("#top"); if (top) top.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -2094,8 +2177,245 @@ body::before { background: var(--green); }
     $("#r-wil").innerHTML = wilOptions(m.wilayat); S.regLoc = { lat: m.lat, lng: m.lng }; $("#r-consent").checked = true;
   }
 
+  // ================= notifications =================
+  function notifCard() {
+    const N = S.notifs;
+    if (!N.available || !N.unread) return "";
+    const top = N.items.find(n => !n.read) || N.items[0];
+    return `<button type="button" class="ncard" data-action="notifs">${icon("bell")}<span><b>عندك ${esc(countNotif(N.unread))}</b>${top ? `<small>${esc(top.title)}</small>` : ""}</span></button>`;
+  }
+  function pushOff() { return pushPossible() && S.notifs.available && S.push.state !== "on" && Notification.permission !== "denied"; }
+  function pushPromo(inList) {
+    if (IS_IOS && !STANDALONE && API && PUSH_KEY && S.notifs.available) {
+      return inList ? `<div class="promo"><div class="p-head">${icon("phone")}<div><b>الإشعارات على جوالك</b><p>في الآيفون والآيباد توصلك الإشعارات بعد ما تضيف سند للشاشة الرئيسية وتفتحه منها.</p></div></div><div class="row"><button type="button" class="btn btn-primary btn-sm" data-action="install">طريقة الإضافة</button></div></div>` : "";
+    }
+    if (!pushPossible() || !S.notifs.available || S.push.state === "on") return "";
+    if (Notification.permission === "denied") return inList ? `<p class="note">الإشعارات مرفوضة على هذا الجهاز. تقدر تسمح لها من إعدادات الجهاز، ثم تفتح سند مرة ثانية.</p>` : "";
+    return `<div class="promo"><div class="p-head">${icon("bell")}<div><b>فعّل الإشعارات على جوالك</b><p>يوصلك خبر إذا أحد قبل طلبك، أو أرسل لك رسالة، أو نزل طلب قريب منك، حتى لو سند مسكّر.</p></div></div><div class="row"><button type="button" class="btn btn-primary btn-sm" data-action="push-on" ${S.push.busy ? "disabled" : ""}>${S.push.busy ? "جارِ التفعيل..." : "فعّل الإشعارات"}</button>${inList ? "" : `<button type="button" class="btn-link quiet" data-action="snooze" data-k="push">لاحقًا</button>`}</div></div>`;
+  }
+  function promoCard() {
+    if (pushOff() && Notification.permission === "default" && !snoozed("push")) return pushPromo(false);
+    if (WEB && !STANDALONE && !snoozed("install")) {
+      return `<div class="promo"><div class="p-head">${icon("phone")}<div><b>أضف سند لشاشتك الرئيسية</b><p>${IS_IOS ? "يفتح مثل التطبيق، وتوصلك الإشعارات على الآيفون والآيباد." : "يفتح مثل التطبيق بضغطة وحدة."}</p></div></div><div class="row"><button type="button" class="btn btn-primary btn-sm" data-action="install">${S.installEvt ? "ثبّت الآن" : "طريقة الإضافة"}</button><button type="button" class="btn-link quiet" data-action="snooze" data-k="install">لاحقًا</button></div></div>`;
+    }
+    return "";
+  }
+  const simplePushBtn = () => pushOff() ? `<button type="button" class="btn btn-ghost" data-action="push-on" ${S.push.busy ? "disabled" : ""}>${icon("bell")}نبّهني على جوالي لما أحد يقبل طلبي</button>` : "";
+  function settingsHTML() {
+    if (!API || !canDb()) return "";
+    const parts = [];
+    if (pushPossible() && S.notifs.available) {
+      if (S.push.state === "on") parts.push(`<div class="setting"><span>${icon("bell")}الإشعارات مفعّلة على هذا الجهاز</span><button type="button" class="btn btn-ghost btn-sm" data-action="push-off">إيقاف</button></div>`);
+      else if (Notification.permission === "denied") parts.push(`<p class="note">الإشعارات مرفوضة على هذا الجهاز من إعداداته.</p>`);
+      else parts.push(`<div class="setting"><span>${icon("bell")}إشعارات الجوال</span><button type="button" class="btn btn-primary btn-sm" data-action="push-on" ${S.push.busy ? "disabled" : ""}>فعّل الإشعارات</button></div>`);
+    } else if (IS_IOS && !STANDALONE && PUSH_KEY && S.notifs.available) {
+      parts.push(`<p class="note">في الآيفون والآيباد توصلك الإشعارات بعد إضافة سند للشاشة الرئيسية.</p>`);
+    }
+    if (!isElderly() && S.notifs.available) parts.push(`<label class="check"><input type="checkbox" id="set-near" ${S.me.notify_near === false ? "" : "checked"}><span>نبّهني بالطلبات الجديدة القريبة مني</span></label>`);
+    const btns = [];
+    if (!STANDALONE) btns.push(`<button type="button" class="btn btn-ghost btn-sm" data-action="install">${icon("phone")}أضف سند للشاشة الرئيسية</button>`);
+    btns.push(`<button type="button" class="btn btn-ghost btn-sm" data-action="xfer-make">${icon("swap")}انقل حسابي لجهاز ثاني</button>`);
+    return `<h3 class="subhead">الإشعارات والجهاز</h3>${parts.join("")}<div class="row">${btns.join("")}</div>`;
+  }
+  function renderNotifs() {
+    const v = $("#v-notifs");
+    if ((S.me ? S.tab : "account") !== "notifs") { if (v.innerHTML) v.innerHTML = ""; return; }
+    const items = S.notifs.items;
+    v.innerHTML = `${backBtn(isElderly() ? "list" : "home", "الرئيسية")}<div class="view-head"><h2>الإشعارات</h2></div>
+      ${pushPromo(true)}
+      <div class="nlist">${items.length ? items.map(n => `<button type="button" class="nitem${n.read ? "" : " unread"}" data-action="notif-open" data-id="${esc(n.id)}"><span class="n-ico">${icon(NICON[n.kind] || "bell")}</span><span><b>${esc(n.title)}</b>${n.body ? `<small>${esc(n.body)}</small>` : ""}<em>${esc(ago(n.at))}</em></span></button>`).join("")
+        : `<div class="empty"><b>ما عندك إشعارات حتى الآن</b><span>بيوصلك هنا خبر إذا أحد قبل طلبك، أو أرسل لك رسالة، أو نزل طلب قريب منك.</span></div>`}</div>`;
+  }
+  function markNotifsRead() {
+    if (!API || !S.notifs.unread) return;
+    S.notifs.unread = 0; updateBell();
+    API.notifsRead().catch(() => { /* it will be marked next time */ });
+  }
+  async function pollNotifs(now) {
+    const N = S.notifs;
+    clearTimeout(N.timer); N.timer = null;
+    if (!API || !S.me || !canDb()) return;
+    if (N.busy) return;
+    if (document.hidden && !now) { N.timer = setTimeout(pollNotifs, 15000); return; }
+    N.busy = true;
+    try {
+      const first = !N.loaded, res = await API.notifs(first ? 0 : N.seq);
+      const items = Array.isArray(res && res.items) ? res.items : [];
+      const byId = new Map(N.items.map(n => [n.id, n])), fresh = [];
+      items.forEach(n => {
+        const old = byId.get(n.id), same = old && old.seq === n.seq;
+        if (!same && !first && !n.read) fresh.push(n);
+        byId.set(n.id, Object.assign({}, n, { read: same ? old.read : !!n.read }));
+      });
+      N.items = [...byId.values()].sort((a, b) => b.seq - a.seq).slice(0, 60);
+      N.seq = Math.max(N.seq, +res.seq || 0); N.unread = +res.unread || 0;
+      const was = N.available; N.available = true; N.loaded = true;
+      if (S.tab === "notifs" && N.unread) markNotifsRead();
+      const here = S.tab === "detail" ? S.selectedId : (simpleUI() ? (simpleActive() || {}).id : null); // no pop-up for the chat already open
+      const shout = fresh.filter(n => !(here && n.req === here && (n.kind === "msg" || n.kind === "live")));
+      if (shout.length && S.tab !== "notifs") { shout.sort((a, b) => b.seq - a.seq); toast(shout.length > 1 ? "وصلتك " + countNotif(shout.length) + "." : shout[0].title); }
+      if (fresh.length || first || !was) { S.simpleKey = ""; renderAll(); } else updateBell();
+    } catch (e) {
+      N.busy = false;
+      if (e && e.code === "failed-precondition") { N.available = false; updateBell(); return; } // the database has no notifications yet
+    }
+    N.busy = false;
+    N.timer = setTimeout(pollNotifs, 15000);
+  }
+  function openNotif(id) {
+    const n = S.notifs.items.find(x => String(x.id) === String(id));
+    if (!n) return;
+    n.read = true;
+    if (!n.req) { renderNotifs(); return; }
+    if (isElderly()) { S.simpleKey = ""; setTab("list"); window.scrollTo(0, 0); return; }
+    if (!allReq().some(r => r.id === n.req)) { toast("الطلب لم يعد موجودًا.", true); renderNotifs(); return; }
+    selectRequest(n.req);
+    window.scrollTo(0, 0);
+  }
+  async function swReady() {
+    if (S.push.reg) return S.push.reg;
+    if (!("serviceWorker" in navigator)) return null;
+    try { S.push.reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error("sw")), 10000))]); } catch (e) { S.push.reg = null; }
+    return S.push.reg;
+  }
+  function keyBytes(s) { const b = atob((s + "=".repeat((4 - s.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(b, c => c.charCodeAt(0)); }
+  async function subscribeHere() {
+    const reg = await swReady();
+    if (!reg) throw new Error("sw");
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(PUSH_KEY) });
+    await API.pushSave(sub.toJSON());
+  }
+  async function syncPush() { // keep this device's subscription linked to the account
+    if (!pushPossible() || !S.me || !canDb() || Notification.permission !== "granted") return;
+    try { await subscribeHere(); S.push.state = "on"; } catch (e) { S.push.state = "off"; }
+  }
+  function enablePush() { // straight from the tap: iPhone and iPad only ask then
+    if (!pushPossible() || S.push.busy) return;
+    S.push.busy = true;
+    let ask;
+    try { ask = Notification.permission === "default" ? Notification.requestPermission() : Notification.permission; } catch (e) { ask = "default"; }
+    S.simpleKey = ""; renderAll();
+    Promise.resolve(ask).then(async (perm) => {
+      if (perm !== "granted") { toast(perm === "denied" ? "الإشعارات مرفوضة. تقدر تسمح لها من إعدادات الجهاز." : "ما تم تفعيل الإشعارات.", perm === "denied"); return; }
+      await subscribeHere();
+      S.push.state = "on"; snooze("push", 3650);
+      toast("تم تفعيل الإشعارات على هذا الجهاز.");
+    }).catch(() => { toast("تعذر تفعيل الإشعارات. حاول مرة ثانية.", true); })
+      .then(() => { S.push.busy = false; S.simpleKey = ""; renderAll(); });
+  }
+  async function disablePush() {
+    const reg = await swReady();
+    try { const sub = reg && await reg.pushManager.getSubscription(); if (sub) { await API.pushRemove(sub.endpoint).catch(() => {}); await sub.unsubscribe(); } } catch (e) { /* already off */ }
+    S.push.state = "off"; toast("أوقفت الإشعارات على هذا الجهاز."); S.simpleKey = ""; renderAll();
+  }
+  async function saveNear(on) {
+    if (!S.me || !canDb()) return;
+    const prof = Object.assign({}, S.me, { notify_near: !!on, updated_at: Date.now() });
+    try { await retryOnce(() => S.db.doc("data/users/" + S.uid + "/profile").set(prof)); S.me = prof; toast(on ? "بيوصلك تنبيه بالطلبات الجديدة القريبة منك." : "أوقفت تنبيهات الطلبات القريبة."); }
+    catch (e) { toast(errText(e), true); }
+    renderAll();
+  }
+  // ---- add to home screen, and moving an account between devices ----
+  const fmtCode = (c) => c ? c.slice(0, 4) + "-" + c.slice(4) : "";
+  function openSheet(kind) {
+    S.sheet = { kind, code: null, busy: false, err: "" };
+    renderSheet();
+    if (kind === "transfer" || (kind === "install" && IS_IOS && S.me && canDb() && API)) makeCode();
+  }
+  function closeSheet() { S.sheet = null; renderSheet(); }
+  async function makeCode() {
+    const sh = S.sheet;
+    if (!sh || !API) return;
+    sh.busy = true; renderSheet();
+    try { const r = await API.transferCreate(); if (S.sheet !== sh) return; sh.code = r && r.code; if (!sh.code) throw new Error("no code"); }
+    catch (e) { if (S.sheet === sh) sh.err = "تعذر تجهيز الرمز. حاول بعد قليل."; }
+    if (S.sheet === sh) { sh.busy = false; renderSheet(); }
+  }
+  function codeHTML(sh) {
+    if (sh.busy) return `<p class="muted" style="margin:0">جارِ تجهيز الرمز...</p>`;
+    if (sh.err) return `<p class="form-msg err" style="margin:0">${esc(sh.err)}</p>`;
+    if (!sh.code) return "";
+    return `<div class="code-box" id="xfer-code">${esc(fmtCode(sh.code))}</div><div class="row"><button type="button" class="btn btn-ghost btn-sm" data-action="copy-code">نسخ الرمز</button></div><p class="hint">صالح لمدة نصف ساعة ولمرة واحدة. لا تعطِه لأحد، فمن معه الرمز يدخل حسابك.</p>`;
+  }
+  function renderSheet() {
+    const el = $("#sheet"), sh = S.sheet;
+    if (!sh) { el.hidden = true; el.innerHTML = ""; return; }
+    let body = "";
+    if (sh.kind === "install" && IS_IOS) {
+      const withCode = S.me && canDb() && API;
+      body = `<h3>أضف سند لشاشتك الرئيسية</h3><ol class="steps-i">
+        <li><span class="sn">١</span><span>اضغط زر المشاركة ${icon("share")}، وإذا ما لقيته اضغط ⋯ أولًا.</span></li>
+        <li><span class="sn">٢</span><span>اختر «إضافة إلى الشاشة الرئيسية» ${icon("squareplus")}، وإذا ما ظهر انزل في القائمة.</span></li>
+        <li><span class="sn">٣</span><span>اضغط «إضافة»، وافتح سند من أيقونته الجديدة.</span></li>
+        ${withCode ? `<li><span class="sn">٤</span><span>سند اللي على الشاشة الرئيسية ما يشوف حسابك اللي هنا، فأول ما يفتح اضغط «عندي حساب» واكتب هذا الرمز:</span></li>` : ""}
+      </ol>${withCode ? codeHTML(sh) : ""}`;
+    } else if (sh.kind === "install") {
+      body = `<h3>أضف سند لشاشتك الرئيسية</h3><ol class="steps-i">
+        <li><span class="sn">١</span><span>افتح قائمة المتصفح (⋮ أو ⋯).</span></li>
+        <li><span class="sn">٢</span><span>اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</span></li>
+        <li><span class="sn">٣</span><span>افتح سند من أيقونته الجديدة، وحسابك معك.</span></li></ol>`;
+    } else {
+      body = `<h3>انقل حسابك لجهاز ثاني</h3><p class="muted" style="margin:0">في الجهاز الثاني افتح سند، واضغط «عندي حساب» في صفحة التسجيل، واكتب هذا الرمز:</p>${codeHTML(sh)}`;
+    }
+    el.innerHTML = `<div class="sheet-box" role="dialog" aria-modal="true">${body}<button type="button" class="btn btn-primary" data-action="sheet-close">تم</button></div>`;
+    el.hidden = false;
+  }
+  function copyCode() {
+    const c = S.sheet && S.sheet.code;
+    if (!c) return;
+    const t = fmtCode(c);
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject(new Error("no clipboard")))
+      .then(() => toast("نُسخ الرمز."), () => toast("الرمز: " + t));
+  }
+  function renderTransfer() {
+    const box = $("#r-transfer");
+    if (!box) return;
+    const X = S.xfer, show = !S.me && !S.editing && !!API && !!S.db && !!S.uid && !S.readOnly, open = X.open || STANDALONE;
+    const key = JSON.stringify([show, open, X.busy, X.msg]);
+    if (key === X.key) return;
+    X.key = key;
+    const keep = $("#x-code") ? $("#x-code").value : "";
+    if (!show) { box.innerHTML = ""; return; }
+    box.innerHTML = !open
+      ? `<button type="button" class="btn-link" data-action="xfer-open" style="align-self:flex-start">عندك حساب في سند على جهاز ثاني؟ انقله لهنا</button>`
+      : `<div class="box"><div class="box-title">${icon("swap")} عندي حساب</div><p class="hint">${STANDALONE ? "إذا سجّلت قبل في المتصفح: افتح سند هناك، ومن قائمة ☰ اختر «انقل حسابي لجهاز ثاني»، واكتب الرمز هنا." : "من الجهاز الثاني: قائمة ☰ ثم «انقل حسابي لجهاز ثاني»، واكتب الرمز هنا."}</p>
+        <div class="xfer"><input id="x-code" maxlength="12" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX" aria-label="رمز النقل"><button type="button" class="btn btn-primary" data-action="xfer-claim" ${X.busy ? "disabled" : ""}>${X.busy ? "لحظة..." : "انقل حسابي"}</button></div>
+        ${X.msg ? `<p class="form-msg err" style="margin:0">${esc(X.msg)}</p>` : ""}</div>`;
+    const inp = $("#x-code"); if (inp && keep) inp.value = keep;
+  }
+  async function claimTransfer() {
+    const inp = $("#x-code"), code = toWestern(inp ? inp.value : "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 8) { S.xfer.msg = "اكتب الرمز كاملًا (٨ خانات)."; renderTransfer(); return; }
+    S.xfer.busy = true; S.xfer.msg = ""; renderTransfer();
+    try {
+      const r = await API.transferClaim(code);
+      if (r && r.ok && r.key && API.useKey(r.key)) { toast("تم نقل حسابك. لحظة..."); setTimeout(() => location.reload(), 700); return; }
+      S.xfer.msg = r && r.error === "busy" ? "محاولات كثيرة. حاول بعد دقائق." : "الرمز غير صحيح أو انتهت صلاحيته. اطلب رمزًا جديدًا.";
+    } catch (e) { S.xfer.msg = errText(e); }
+    S.xfer.busy = false; renderTransfer();
+  }
+  // links from a notification: ?open=<request id> or ?notifs=1
+  function handleLink(href, initial) {
+    let u;
+    try { u = new URL(href, location.href); } catch (e) { return; }
+    const open = u.searchParams.get("open"), list = u.searchParams.get("notifs");
+    if (!open && !list) return;
+    if (initial) { try { u.searchParams.delete("open"); u.searchParams.delete("notifs"); history.replaceState(null, "", u.pathname + u.search + u.hash); } catch (e) { /* ignore */ } }
+    if (list) { S.pendingOpen = null; if (S.me) { setTab("notifs"); window.scrollTo(0, 0); } return; }
+    S.pendingOpen = open; tryPendingOpen();
+  }
+  function tryPendingOpen() {
+    const id = S.pendingOpen;
+    if (!id || !S.me || !S.loaded) return;
+    S.pendingOpen = null;
+    if (isElderly()) { S.simpleKey = ""; setTab("list"); return; }
+    if (allReq().some(r => r.id === id)) { selectRequest(id); window.scrollTo(0, 0); } else toast("الطلب لم يعد موجودًا.", true);
+  }
+
   // ================= events =================
   document.addEventListener("click", (e) => {
+    if (e.target && e.target.id === "sheet") { closeSheet(); return; }
     const el = e.target.closest("[data-action]");
     if (!el) return;
     const a = el.dataset.action, id = el.dataset.id;
@@ -2121,6 +2441,20 @@ body::before { background: var(--green); }
         else { S.prevTab = S.tab === "account" ? "home" : S.tab; S.editing = false; setTab("account"); }
         window.scrollTo(0, 0); break;
       case "rate-owner": rateOwner(id, +el.dataset.v); break;
+      case "notifs": if (S.me) { setTab("notifs"); window.scrollTo(0, 0); } break;
+      case "notif-open": openNotif(id); break;
+      case "push-on": enablePush(); break;
+      case "push-off": disablePush(); break;
+      case "install":
+        if (S.installEvt) { const ev = S.installEvt; S.installEvt = null; try { ev.prompt(); ev.userChoice.then(() => renderAll(), () => {}); } catch (err) { openSheet("install"); } }
+        else openSheet("install");
+        break;
+      case "snooze": snooze(el.dataset.k, el.dataset.k === "install" ? 14 : 7); renderAll(); break;
+      case "sheet-close": closeSheet(); break;
+      case "copy-code": copyCode(); break;
+      case "xfer-make": openSheet("transfer"); break;
+      case "xfer-open": S.xfer.open = true; renderTransfer(); { const i = $("#x-code"); if (i) i.focus(); } break;
+      case "xfer-claim": claimTransfer(); break;
       case "share-start": startShare(id); break;
       case "share-stop": stopShare(); break;
       case "zoom-in": { const t = map.target || map; map.go(t.cx, t.cy, t.upp / 1.8); break; }
@@ -2173,6 +2507,8 @@ body::before { background: var(--green); }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && S.pick) finishPick(false);
+    if (e.key === "Escape" && S.sheet) closeSheet();
+    if (e.key === "Enter" && e.target && e.target.id === "x-code") { e.preventDefault(); claimTransfer(); }
     const lab = e.target.closest && e.target.closest('label[for="voice-file"]');
     if (lab && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); lab.click(); }
   });
@@ -2180,6 +2516,7 @@ body::before { background: var(--green); }
     const t = e.target;
     if (t.name === "sec" || t.name === "kind" || t.id === "n-behalf-on") renderNewForm();
     if (t.name === "age") ageHint(t.value);
+    if (t.id === "set-near") saveNear(t.checked);
     if (t.id === "voice-file") { const f = t.files && t.files[0]; t.value = ""; if (f) processVoiceFile(f); }
   });
   document.addEventListener("input", (e) => {
@@ -2265,9 +2602,10 @@ body::before { background: var(--green); }
         const before = S.loaded ? new Set(S.requests.map(r => r.id)) : null;
         S.requests = snap.docs.map(x => normalize(Object.assign({ id: x.id }, x.data())));
         S.loaded = true; S.loadError = null;
-        if (before) announceNew(before);
+        if (before) { if (S.notifs.available) pollNotifs(true); else announceNew(before); }
         if (S.tab === "detail") startMsgs(allReq().find(x => x.id === S.selectedId));
         renderAll();
+        tryPendingOpen();
       }, (err) => { S.loadError = errText(err); S.loaded = true; renderAll(); });
       if (S.isOwner) {
         db.collection("reports").limit(200).onSnapshot((snap) => { S.reports = snap.docs.map(x => Object.assign({ id: x.id }, x.data())); if (S.tab === "account") renderAccount(); }, () => { /* reports unavailable */ });
@@ -2275,12 +2613,26 @@ body::before { background: var(--green); }
     }
     renderAll();
     if (S.me && typeof S.me.lat === "number" && !isElderly()) map.focus(S.me.lat, S.me.lng, 28, false);
+    if (WEB) {
+      if (S.me && canDb()) { pollNotifs(true); syncPush().then(() => { S.simpleKey = ""; renderAll(); }); }
+      handleLink(location.href, true);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden && S.me) pollNotifs(true); });
+      if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", (e) => {
+        const d = e.data || {};
+        if (d.type === "sanad-push") pollNotifs(true);
+        if (d.type === "sanad-open" && d.url) { handleLink(d.url, false); pollNotifs(true); }
+      });
+    }
+  }
+  if (WEB) {
+    window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); S.installEvt = e; if (S.me) renderAll(); });
+    window.addEventListener("appinstalled", () => { S.installEvt = null; snooze("install", 3650); renderAll(); });
   }
   const booting = boot();
 })();
 </script>
 <script>
-if ("serviceWorker" in navigator && location.protocol === "https:") {
+if ("serviceWorker" in navigator && (location.protocol === "https:" || /^(localhost|127[.]0[.]0[.]1)$/.test(location.hostname))) {
   window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
 }
 </script>

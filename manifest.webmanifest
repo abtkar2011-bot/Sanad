@@ -4,6 +4,7 @@
   "description": "منصة عُمانية مجانية للمساعدة المجتمعية: اطلب المساعدة أو قدّمها لمن حولك.",
   "lang": "ar",
   "dir": "rtl",
+  "id": "./",
   "start_url": "./?source=app",
   "scope": "./",
   "display": "standalone",
